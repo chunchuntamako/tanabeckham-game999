@@ -60,7 +60,10 @@ const MAPS = {
   },
 };
 
-const FIELD_SPEED = 3.4; // タイル/秒（キー押しっぱなしで連続移動する速さ）
+// 元の1マスを縦横2分割＝4倍の細かさのマス目にして、そのマス単位でコマ送りに動かす
+// （なめらかな補間はせず、瞬間的にパッパッと切り替えることでレトロな歩きにする）。
+const FIELD_SUBDIV = 2;
+const FIELD_STEP_MS = 150; // 細かいマス1つを移動するのにかかる時間
 
 class FieldController {
   constructor(canvas, state, callbacks) {
@@ -72,14 +75,13 @@ class FieldController {
     this.keyDownHandler = this.handleKeyDown.bind(this);
     this.keyUpHandler = this.handleKeyUp.bind(this);
     this.loopHandler = this.loop.bind(this);
-    // 見た目上の座標（連続移動用）。state.position は常にこれに一番近いマスの整数値を保つ。
+    // 見た目上の座標（元のマス単位の小数）。state.position は常にこれを丸めた整数値を保つ。
     this.visX = state.position.x;
     this.visY = state.position.y;
-    this.lastTileX = state.position.x;
-    this.lastTileY = state.position.y;
     this.keys = { up: false, down: false, left: false, right: false };
     this._lastT = null;
     this._loopId = null;
+    this._stepTimer = 0;
   }
 
   enable() {
@@ -89,6 +91,7 @@ class FieldController {
     document.addEventListener("keyup", this.keyUpHandler);
     this.active = true;
     this._lastT = null;
+    this._stepTimer = 0;
     if (this._loopId) cancelAnimationFrame(this._loopId);
     this._loopId = requestAnimationFrame(this.loopHandler);
   }
@@ -97,6 +100,7 @@ class FieldController {
     document.removeEventListener("keyup", this.keyUpHandler);
     this.active = false;
     this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
+    this._stepTimer = 0;
     if (this._loopId) { cancelAnimationFrame(this._loopId); this._loopId = null; }
   }
   currentMap() { return MAPS[this.state.position.map] || MAPS.home; }
@@ -130,11 +134,11 @@ class FieldController {
   // タッチD-padからも同じ経路で押しっぱなし移動させる
   setKey(dir, val) { this.keys[dir] = val; }
 
-  // 押している間ずっと動き続ける、なめらかな連続移動のメインループ
+  // キーを押している間、一定間隔ごとに1コマ分だけパッと移動させるループ（レトロな歩き）
   loop(t) {
     if (!this.active) return;
     if (this._lastT == null) this._lastT = t;
-    const dt = Math.min(0.05, (t - this._lastT) / 1000); // タブ切替等での大ジャンプを防ぐ
+    const dt = Math.min(0.1, (t - this._lastT) / 1000); // タブ切替等での大ジャンプを防ぐ
     this._lastT = t;
     this.update(dt);
     if (!this.active) return; // update中にイベントが発生しdisable()された場合はここで止める
@@ -143,31 +147,44 @@ class FieldController {
   }
 
   update(dt) {
-    const map = this.currentMap();
     let dx = 0, dy = 0;
-    if (this.keys.left) dx -= 1;
-    if (this.keys.right) dx += 1;
-    if (this.keys.up) dy -= 1;
-    if (this.keys.down) dy += 1;
-    if (dx === 0 && dy === 0) return;
-    if (dx !== 0 && dy !== 0) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; } // 斜め移動の速度を等しくする
+    if (this.keys.left) dx = -1;
+    else if (this.keys.right) dx = 1;
+    if (dx === 0) {
+      if (this.keys.up) dy = -1;
+      else if (this.keys.down) dy = 1;
+    }
+    if (dx === 0 && dy === 0) { this._stepTimer = 0; return; }
 
-    const nx = Math.max(0, Math.min(map.w - 1, this.visX + dx * FIELD_SPEED * dt));
-    const ny = Math.max(0, Math.min(map.h - 1, this.visY + dy * FIELD_SPEED * dt));
+    this._stepTimer += dt * 1000;
+    if (this._stepTimer < FIELD_STEP_MS) return;
+    this._stepTimer = 0;
+    this.step(dx, dy);
+  }
+
+  // 元のマスの1/4サイズ（縦横1/2ずつ）を1コマとして、瞬時に1コマ分だけ移動する
+  step(dx, dy) {
+    const map = this.currentMap();
+    const unit = 1 / FIELD_SUBDIV;
+    let nx = this.visX + dx * unit;
+    let ny = this.visY + dy * unit;
+    nx = Math.max(0, Math.min(map.w - 1, nx));
+    ny = Math.max(0, Math.min(map.h - 1, ny));
+    // 浮動小数の誤差を1/FIELD_SUBDIV刻みに丸め直す
+    nx = Math.round(nx * FIELD_SUBDIV) / FIELD_SUBDIV;
+    ny = Math.round(ny * FIELD_SUBDIV) / FIELD_SUBDIV;
     this.visX = nx;
     this.visY = ny;
     this.state.position.x = Math.round(nx);
     this.state.position.y = Math.round(ny);
 
-    const tx = Math.round(nx), ty = Math.round(ny);
-    if (tx !== this.lastTileX || ty !== this.lastTileY) {
-      this.lastTileX = tx;
-      this.lastTileY = ty;
-      this.onEnterTile(tx, ty, map);
+    // 元のマス目にぴったり乗った時だけ、出口／建物／ボス等のイベント判定を行う
+    if (Number.isInteger(nx) && Number.isInteger(ny)) {
+      this.onEnterTile(nx, ny, map);
     }
   }
 
-  // 新しいマスに入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
+  // 元のマス目に入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
   onEnterTile(nx, ny, map) {
     const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny);
     if (exit) {
@@ -176,8 +193,6 @@ class FieldController {
       this.state.position.y = exit.ty;
       this.visX = exit.tx;
       this.visY = exit.ty;
-      this.lastTileX = exit.tx;
-      this.lastTileY = exit.ty;
       saveGame(this.state);
       if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
       return;
