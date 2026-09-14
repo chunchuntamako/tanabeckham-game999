@@ -465,7 +465,7 @@ function resolveMatEvent(choice) {
   } else if (choice.result === "gameOver") {
     showChoices('GAME OVER\n罪状：お年寄り殺しすぎ', [
       { label: "チェックポイントへ", onClick: () => {
-          STATE.position = { map: "field", x: 7, y: 5 };
+          STATE.position = { map: "field", x: 7, y: 3 };
           saveGame(STATE);
           enterField();
         } },

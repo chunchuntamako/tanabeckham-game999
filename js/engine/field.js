@@ -8,20 +8,20 @@ const MAPS = {
     bg: "assets/maps/field_home.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 0, ty: 12, label: "フィールド" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 11, label: "フィールド" }],
     encounter: null,
   },
   field: {
     name: "田辺の町・郊外",
-    bg: "assets/maps/field_route.png",
+    bg: "assets/maps/field_route.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    // 南西に自宅と町を近接配置、北東にダンジョン、練習場は町寄りの南側
+    // 新しいイラストの看板・入口の実際の位置に合わせて配置
     exits: [
-      { x: 0, y: 12, to: "home", tx: 4, ty: 15, label: "自宅" },
-      { x: 2, y: 15, to: "town", tx: 4, ty: 15, label: "町" },
-      { x: 8, y: 3, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x: 5, y: 14, to: "practice", tx: 0, ty: 9, label: "練習場" },
+      { x: 4, y: 11, to: "home", tx: 4, ty: 15, label: "自宅" },
+      { x: 3, y: 6, to: "town", tx: 4, ty: 15, label: "町" },
+      { x: 7, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
+      { x: 6, y: 6, to: "practice", tx: 0, ty: 9, label: "練習場" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -30,7 +30,7 @@ const MAPS = {
     bg: "assets/maps/town_map.png?v=2",
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 15, label: "郊外" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 3, ty: 6, label: "郊外" }],
     // 新しいイラストの各建物の扉の実際の位置に合わせて配置
     buildings: [
       { x: 4, y: 2, id: "jobcenter", name: "職安" },
@@ -46,7 +46,7 @@ const MAPS = {
     bg: "assets/backgrounds/field.png",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 0, y: 9, to: "field", tx: 5, ty: 14, label: "戻る" }],
+    exits: [{ x: 0, y: 9, to: "field", tx: 6, ty: 6, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
@@ -55,7 +55,7 @@ const MAPS = {
     bg: "assets/maps/dungeon_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 8, ty: 3, label: "出口" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 7, ty: 1, label: "出口" }],
     encounter: { table: "dungeon", rate: 0.18 },
     // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
