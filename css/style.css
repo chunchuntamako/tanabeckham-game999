@@ -141,6 +141,8 @@ button { font:inherit; }
 .party-card img { width:34px; height:34px; object-fit:contain; border-radius:5px; }
 .shoplist { list-style:none; padding:0; margin:7px 0; }
 .shoplist li { margin-bottom:7px; }
+/* 店の背景イラストを敷いた時、地の文が読みやすいよう影を付ける */
+.dialog.shop-bg > p { text-shadow:0 1px 4px rgba(0,0,0,.9); }
 
 /* RPG操作はゲーム画面上に重ねる。縦持ち片手でも届く位置。 */
 #dpad {

@@ -187,7 +187,7 @@ function enterField() {
 
 function enterBuilding(building) {
   FIELD.disable();
-  if (building.id === "weaponshop") openShop(["weapons", "shields", "armors"]);
+  if (building.id === "weaponshop") openShop(["weapons", "shields", "armors"], "assets/shops/weaponshop.png");
   else if (building.id === "itemshop") openShop(["items"]);
   else if (building.id === "inn") openInn();
   else if (building.id === "tavern") openTavern();
@@ -208,14 +208,17 @@ function showHomeInterior() {
 function backToField() { FIELD.enable(); hideOverlay(); FIELD.render(); }
 
 // ---------- 武器屋・道具屋 ----------
-function openShop(categories) {
+function openShop(categories, bgImage) {
   let items = [];
   if (categories.includes("weapons")) items = items.concat(CHAPTER0.weapons.map(w => ({ ...w, type: "weapon" })));
   if (categories.includes("shields")) items = items.concat(CHAPTER0.shields.map(s => ({ ...s, type: "shield" })));
   if (categories.includes("armors")) items = items.concat(CHAPTER0.armors.map(a => ({ ...a, type: "armor" })));
   if (categories.includes("items")) items = items.concat(CHAPTER0.items.map(it => ({ ...it, type: "item" })));
 
-  let html = `<div class="dialog"><p>所持金: ${STATE.player.gold}G</p><ul class="shoplist">`;
+  const bgStyle = bgImage
+    ? ` style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('${bgImage}') center/cover no-repeat;"`
+    : "";
+  let html = `<div class="dialog shop-bg"${bgStyle}><p>所持金: ${STATE.player.gold}G</p><ul class="shoplist">`;
   items.forEach((it, i) => { html += `<li><button data-i="${i}">${it.name} ${it.price}G</button></li>`; });
   html += `</ul><button id="closeShop">出る</button></div>`;
   showOverlay(html);
@@ -231,7 +234,7 @@ function openShop(categories) {
         }
         saveGame(STATE);
       }
-      openShop(categories);
+      openShop(categories, bgImage);
     };
   });
   overlay.querySelector("#closeShop").onclick = backToField;
