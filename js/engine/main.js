@@ -56,11 +56,14 @@ function sizeArtFrames() {
 window.addEventListener("resize", sizeArtFrames);
 
 // ---------- タイトル画面 ----------
+// 差し替え時に古い画像がブラウザ/CDNにキャッシュされて反映されない事故を防ぐため、
+// 素材を更新したらこの番号を上げる。
+const ART_ASSET_VERSION = "2";
 function showTitleScreen() {
   playBGM("bgm_title");
   const hasSave = !!loadGame();
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
-    <img src="assets/title/title_main.png" onerror="this.style.display='none'">
+    <img src="assets/title/title_main.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
     <button id="titleNew" class="art-hotspot" style="top:74.0%;height:4.3%;left:9%;width:43%;" aria-label="はじめから"></button>
     <button id="titleContinue" class="art-hotspot" style="top:79.5%;height:4.7%;left:9%;width:43%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
     <button id="titleSettings" class="art-hotspot" style="top:85.3%;height:4.7%;left:9%;width:43%;" aria-label="設定"></button>
@@ -155,7 +158,7 @@ function showMomDialogue() {
   FIELD && FIELD.disable();
   playBGM("bgm_opening");
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
-    <img src="assets/opening/opening_home.png" onerror="this.style.display='none'">
+    <img src="assets/opening/opening_home.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
     <button id="momOk" class="art-hotspot" style="top:66%;height:9%;left:10%;width:80%;" aria-label="次へ"></button>
   </div></div>`);
   sizeArtFrames();
