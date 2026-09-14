@@ -68,6 +68,11 @@ class FieldController {
     this.cb = callbacks;
     this.active = false;
     this.keyHandler = this.handleKey.bind(this);
+    // 見た目上の座標（滑らか移動用）。論理座標(state.position)とは別に補間する。
+    this.visX = state.position.x;
+    this.visY = state.position.y;
+    this.moving = false;
+    this._animFrame = null;
   }
 
   enable() {
@@ -75,7 +80,12 @@ class FieldController {
     document.addEventListener("keydown", this.keyHandler);
     this.active = true;
   }
-  disable() { document.removeEventListener("keydown", this.keyHandler); this.active = false; }
+  disable() {
+    document.removeEventListener("keydown", this.keyHandler);
+    this.active = false;
+    if (this._animFrame) { cancelAnimationFrame(this._animFrame); this._animFrame = null; }
+    this.moving = false;
+  }
   currentMap() { return MAPS[this.state.position.map] || MAPS.home; }
 
   // 横は画面幅いっぱいに合わせ、縦はプレイヤー追従のスクロールにする。
@@ -88,7 +98,7 @@ class FieldController {
     const scale = cw / bgImg.width;
     const worldH = bgImg.height * scale;
     const th = worldH / map.h;
-    const playerCenterY = (this.state.position.y + 0.5) * th;
+    const playerCenterY = (this.visY + 0.5) * th;
     const maxCam = Math.max(0, worldH - ch);
     const cameraY = Math.min(maxCam, Math.max(0, playerCenterY - ch / 2));
     return { tw, th, worldH, cameraY, bgImg, scale };
@@ -106,38 +116,72 @@ class FieldController {
   }
 
   move(dx, dy) {
-    if (!this.active) return;
+    if (!this.active || this.moving) return; // アニメ中は次の入力を無視（1マスずつの手応えは維持）
     const map = this.currentMap();
     const nx = this.state.position.x + dx;
     const ny = this.state.position.y + dy;
     if (nx < 0 || ny < 0 || nx >= map.w || ny >= map.h) { this.render(); return; }
-    this.state.position.x = nx;
-    this.state.position.y = ny;
 
     const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny);
-    if (exit) {
-      this.state.position.map = exit.to;
-      this.state.position.x = exit.tx;
-      this.state.position.y = exit.ty;
-      saveGame(this.state);
-      this.render();
-      if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
-      return;
-    }
     const building = (map.buildings || []).find(b => b.x === nx && b.y === ny);
-    if (building) { this.cb.onEnterBuilding(building); return; }
-    if (map.boss && map.boss.x === nx && map.boss.y === ny && !this.state.flags.seitaiDefeated) {
-      this.cb.onBoss(map.boss.id); return;
-    }
-    if (map.hiddenNpc && this.state.flags.seitaiDefeated && map.hiddenNpc.x === nx && map.hiddenNpc.y === ny && !this.state.hiddenEvents.mat) {
-      this.cb.onTalkNpc(map.hiddenNpc.id); return;
-    }
-    if (map.encounter && Math.random() < map.encounter.rate) {
-      this.cb.onEncounter(map.encounter.table);
+    const isBoss = map.boss && map.boss.x === nx && map.boss.y === ny && !this.state.flags.seitaiDefeated;
+    const isHiddenNpc = map.hiddenNpc && this.state.flags.seitaiDefeated && map.hiddenNpc.x === nx && map.hiddenNpc.y === ny && !this.state.hiddenEvents.mat;
+    const encounterHit = map.encounter && Math.random() < map.encounter.rate;
+
+    if (exit || building || isBoss || isHiddenNpc || encounterHit) {
+      // 出口／建物／イベントマスは従来通り即時処理（移動アニメは挟まない）
+      this.state.position.x = nx;
+      this.state.position.y = ny;
+      this.visX = nx;
+      this.visY = ny;
+      if (exit) {
+        this.state.position.map = exit.to;
+        this.state.position.x = exit.tx;
+        this.state.position.y = exit.ty;
+        this.visX = exit.tx;
+        this.visY = exit.ty;
+        saveGame(this.state);
+        this.render();
+        if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
+        return;
+      }
+      this.render();
+      if (building) { this.cb.onEnterBuilding(building); return; }
+      if (isBoss) { this.cb.onBoss(map.boss.id); return; }
+      if (isHiddenNpc) { this.cb.onTalkNpc(map.hiddenNpc.id); return; }
+      if (encounterHit) { this.cb.onEncounter(map.encounter.table); return; }
       return;
     }
-    saveGame(this.state);
-    this.render();
+
+    this.animateStep(nx, ny);
+  }
+
+  // 通常の1マス移動を滑らかに補間する
+  animateStep(nx, ny) {
+    const fromX = this.state.position.x, fromY = this.state.position.y;
+    this.state.position.x = nx;
+    this.state.position.y = ny;
+    this.moving = true;
+    const dur = 140;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      const ease = 1 - Math.pow(1 - t, 2); // ease-out
+      this.visX = fromX + (nx - fromX) * ease;
+      this.visY = fromY + (ny - fromY) * ease;
+      this.render();
+      if (t < 1) {
+        this._animFrame = requestAnimationFrame(step);
+      } else {
+        this.visX = nx;
+        this.visY = ny;
+        this.moving = false;
+        saveGame(this.state);
+        this.render();
+      }
+    };
+    if (this._animFrame) cancelAnimationFrame(this._animFrame);
+    this._animFrame = requestAnimationFrame(step);
   }
 
   marker(x, y, tw, th, cameraY, label, color) {
@@ -190,7 +234,7 @@ class FieldController {
 
     // プレイヤー。全身画像は縦長なので、足元基準で小さく描画。
     const playerImg = getImage("assets/characters/tanabe.png");
-    const px = this.state.position.x * tw, py = this.state.position.y * th - cameraY;
+    const px = this.visX * tw, py = this.visY * th - cameraY;
     const pH = Math.min(76, Math.max(52, Math.min(tw * 1.55, th * 0.95)));
     const pW = pH * 0.72;
     if (playerImg) {

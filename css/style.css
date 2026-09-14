@@ -95,9 +95,11 @@ button { font:inherit; }
 .dialog button[disabled] { opacity:.35; pointer-events:none; }
 .title-image { width:100%; max-width:420px; display:block; margin:0 auto 14px; border-radius:12px; }
 
-/* タイトル・オープニングなど、1枚絵をそのまま全画面表示する用途 */
-.full-screen-art { position:absolute; inset:0; overflow:hidden; }
-.full-screen-art img { width:100%; height:100%; object-fit:cover; display:block; }
+/* タイトル・オープニングなど、1枚絵をそのまま全画面表示する用途。
+   画面比率が絵の比率(9:16)と違っても、絵が切れないよう中央にレターボックス表示する。 */
+.full-screen-art { position:absolute; inset:0; overflow:hidden; background:#000; display:flex; align-items:center; justify-content:center; }
+.full-screen-art .art-frame { position:relative; overflow:hidden; }
+.full-screen-art .art-frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }
 .art-hotspot { position:absolute; background:transparent; border:none; padding:0; margin:0; touch-action:manipulation; }
 .art-hotspot:active { background:rgba(255,255,255,.16); }
 .art-hotspot[disabled] { pointer-events:none; }

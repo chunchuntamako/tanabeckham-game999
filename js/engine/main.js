@@ -39,15 +39,32 @@ function init() {
   requestAnimationFrame(hudLoop);
 }
 
+// ---------- 全画面1枚絵（タイトル・オープニング共通） ----------
+// 画面比率が絵(9:16)と違っても切れないよう、絵と同じ比率の枠を計算して中央に敷く。
+const ART_ASPECT = 9 / 16; // 720x1280素材の横/縦比
+function sizeArtFrames() {
+  const stage = document.getElementById("stage");
+  if (!stage) return;
+  const cw = stage.clientWidth, ch = stage.clientHeight;
+  let w = cw, h = w / ART_ASPECT;
+  if (h > ch) { h = ch; w = h * ART_ASPECT; }
+  overlay.querySelectorAll(".art-frame").forEach(el => {
+    el.style.width = Math.round(w) + "px";
+    el.style.height = Math.round(h) + "px";
+  });
+}
+window.addEventListener("resize", sizeArtFrames);
+
 // ---------- タイトル画面 ----------
 function showTitleScreen() {
   playBGM("bgm_title");
   const hasSave = !!loadGame();
-  showOverlay(`<div class="full-screen-art">
+  showOverlay(`<div class="full-screen-art"><div class="art-frame">
     <img src="assets/title/title_main.png" onerror="this.style.display='none'">
     <button id="titleNew" class="art-hotspot" style="top:85.5%;height:7.5%;left:6%;width:88%;" aria-label="はじめから"></button>
     <button id="titleContinue" class="art-hotspot" style="top:93.5%;height:6%;left:6%;width:88%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
-  </div>`);
+  </div></div>`);
+  sizeArtFrames();
   document.getElementById("titleNew").onclick = () => {
     if (hasSave) {
       showChoices("既存のセーブを消して最初から始めますか？", [
@@ -133,10 +150,11 @@ function showChoices(text, choices) {
 function showMomDialogue() {
   FIELD && FIELD.disable();
   playBGM("bgm_opening");
-  showOverlay(`<div class="full-screen-art">
+  showOverlay(`<div class="full-screen-art"><div class="art-frame">
     <img src="assets/opening/opening_home.png" onerror="this.style.display='none'">
     <button id="momOk" class="art-hotspot" style="top:66%;height:9%;left:10%;width:80%;" aria-label="次へ"></button>
-  </div>`);
+  </div></div>`);
+  sizeArtFrames();
   document.getElementById("momOk").onclick = () => {
     hideOverlay();
     STATE.flags.momTalkDone = true;
