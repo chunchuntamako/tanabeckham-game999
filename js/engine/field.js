@@ -5,7 +5,7 @@
 const MAPS = {
   home: {
     name: "田辺の家",
-    bg: "assets/maps/field_home.png",
+    bg: "assets/maps/field_home.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 0, ty: 12, label: "フィールド" }],
