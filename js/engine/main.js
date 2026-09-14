@@ -30,7 +30,7 @@ function init() {
     if (MATCH) MATCH.render();
   });
   // マップ画像を先読みしておき、切り替わった瞬間に絵が出ない状態を防ぐ
-  ["assets/maps/field_home.png","assets/maps/field_route.png","assets/maps/town_map.png","assets/maps/dungeon_map.png","assets/characters/tanabe.png"]
+  ["assets/maps/field_home.png","assets/maps/field_route.png","assets/maps/town_map.png","assets/maps/dungeon_map.png","assets/characters/tanabe.png?v=2"]
     .forEach(p => getImage(p));
   showTitleScreen();
   // 5秒ごと＋画面を閉じる直前に現在位置/残り時間を保存

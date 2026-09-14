@@ -315,10 +315,10 @@ class FieldController {
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
 
-    // プレイヤー。全身画像は縦長なので、足元基準で小さく描画。
-    const playerImg = getImage("assets/characters/tanabe.png");
+    // プレイヤー。顔がわかる大きさまで拡大し、足元基準で描画（複数マスにまたがってOK）。
+    const playerImg = getImage("assets/characters/tanabe.png?v=2");
     const px = this.visX * tw, py = this.visY * th - cameraY;
-    const pH = Math.min(76, Math.max(52, Math.min(tw * 1.55, th * 0.95)));
+    const pH = Math.min(150, Math.max(96, th * 2.3));
     const pW = pH * 0.72;
     if (playerImg) {
       ctx.save();
