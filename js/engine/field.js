@@ -52,14 +52,14 @@ const MAPS = {
   },
   dungeon: {
     name: "序章ダンジョン",
-    bg: "assets/maps/dungeon_map.png",
+    bg: "assets/maps/dungeon_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 8, ty: 3, label: "出口" }],
     encounter: { table: "dungeon", rate: 0.18 },
-    // 入口→ボス→隠しNPCの順に奥へ進む構成
-    boss: { x: 4, y: 4, id: "seitaishi", label: "整体師" },
-    hiddenNpc: { x: 4, y: 0, id: "oldman_mat", label: "老人" },
+    // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
+    boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
+    hiddenNpc: { x: 4, y: 1, id: "oldman_mat", label: "老人" },
   },
 };
 
