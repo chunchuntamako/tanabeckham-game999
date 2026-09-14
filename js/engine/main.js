@@ -550,16 +550,18 @@ function setupTouchControls() {
     }
   };
 
-  // フィールドではタップ1回で1マス移動、サッカーでは押している間だけ移動
+  // フィールド・サッカーとも、押している間だけ動き続ける
   const dirKey = { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" };
-  const dirDelta = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   ["up", "down", "left", "right"].forEach((dir) => {
     bind(`btn-${dir}`,
       () => {
         if (MATCH) MATCH.setKey(dirKey[dir], true);
-        else if (FIELD) FIELD.move(dirDelta[dir][0], dirDelta[dir][1]);
+        else if (FIELD) FIELD.setKey(dir, true);
       },
-      () => { if (MATCH) MATCH.setKey(dirKey[dir], false); }
+      () => {
+        if (MATCH) MATCH.setKey(dirKey[dir], false);
+        else if (FIELD) FIELD.setKey(dir, false);
+      }
     );
   });
 

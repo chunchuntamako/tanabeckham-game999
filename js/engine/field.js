@@ -60,6 +60,8 @@ const MAPS = {
   },
 };
 
+const FIELD_SPEED = 3.4; // タイル/秒（キー押しっぱなしで連続移動する速さ）
+
 class FieldController {
   constructor(canvas, state, callbacks) {
     this.canvas = canvas;
@@ -67,24 +69,35 @@ class FieldController {
     this.state = state;
     this.cb = callbacks;
     this.active = false;
-    this.keyHandler = this.handleKey.bind(this);
-    // 見た目上の座標（滑らか移動用）。論理座標(state.position)とは別に補間する。
+    this.keyDownHandler = this.handleKeyDown.bind(this);
+    this.keyUpHandler = this.handleKeyUp.bind(this);
+    this.loopHandler = this.loop.bind(this);
+    // 見た目上の座標（連続移動用）。state.position は常にこれに一番近いマスの整数値を保つ。
     this.visX = state.position.x;
     this.visY = state.position.y;
-    this.moving = false;
-    this._animFrame = null;
+    this.lastTileX = state.position.x;
+    this.lastTileY = state.position.y;
+    this.keys = { up: false, down: false, left: false, right: false };
+    this._lastT = null;
+    this._loopId = null;
   }
 
   enable() {
-    document.removeEventListener("keydown", this.keyHandler);
-    document.addEventListener("keydown", this.keyHandler);
+    document.removeEventListener("keydown", this.keyDownHandler);
+    document.removeEventListener("keyup", this.keyUpHandler);
+    document.addEventListener("keydown", this.keyDownHandler);
+    document.addEventListener("keyup", this.keyUpHandler);
     this.active = true;
+    this._lastT = null;
+    if (this._loopId) cancelAnimationFrame(this._loopId);
+    this._loopId = requestAnimationFrame(this.loopHandler);
   }
   disable() {
-    document.removeEventListener("keydown", this.keyHandler);
+    document.removeEventListener("keydown", this.keyDownHandler);
+    document.removeEventListener("keyup", this.keyUpHandler);
     this.active = false;
-    if (this._animFrame) { cancelAnimationFrame(this._animFrame); this._animFrame = null; }
-    this.moving = false;
+    this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
+    if (this._loopId) { cancelAnimationFrame(this._loopId); this._loopId = null; }
   }
   currentMap() { return MAPS[this.state.position.map] || MAPS.home; }
 
@@ -104,84 +117,84 @@ class FieldController {
     return { tw, th, worldH, cameraY, bgImg, scale };
   }
 
-  handleKey(e) {
-    let dx = 0, dy = 0;
-    if (e.key === "ArrowUp") dy = -1;
-    else if (e.key === "ArrowDown") dy = 1;
-    else if (e.key === "ArrowLeft") dx = -1;
-    else if (e.key === "ArrowRight") dx = 1;
-    else return;
+  handleKeyDown(e) {
+    const dir = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[e.key];
+    if (!dir) return;
     e.preventDefault();
-    this.move(dx, dy);
+    this.keys[dir] = true;
+  }
+  handleKeyUp(e) {
+    const dir = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[e.key];
+    if (dir) this.keys[dir] = false;
+  }
+  // タッチD-padからも同じ経路で押しっぱなし移動させる
+  setKey(dir, val) { this.keys[dir] = val; }
+
+  // 押している間ずっと動き続ける、なめらかな連続移動のメインループ
+  loop(t) {
+    if (!this.active) return;
+    if (this._lastT == null) this._lastT = t;
+    const dt = Math.min(0.05, (t - this._lastT) / 1000); // タブ切替等での大ジャンプを防ぐ
+    this._lastT = t;
+    this.update(dt);
+    if (!this.active) return; // update中にイベントが発生しdisable()された場合はここで止める
+    this.render();
+    this._loopId = requestAnimationFrame(this.loopHandler);
   }
 
-  move(dx, dy) {
-    if (!this.active || this.moving) return; // アニメ中は次の入力を無視（1マスずつの手応えは維持）
+  update(dt) {
     const map = this.currentMap();
-    const nx = this.state.position.x + dx;
-    const ny = this.state.position.y + dy;
-    if (nx < 0 || ny < 0 || nx >= map.w || ny >= map.h) { this.render(); return; }
+    let dx = 0, dy = 0;
+    if (this.keys.left) dx -= 1;
+    if (this.keys.right) dx += 1;
+    if (this.keys.up) dy -= 1;
+    if (this.keys.down) dy += 1;
+    if (dx === 0 && dy === 0) return;
+    if (dx !== 0 && dy !== 0) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; } // 斜め移動の速度を等しくする
 
+    const nx = Math.max(0, Math.min(map.w - 1, this.visX + dx * FIELD_SPEED * dt));
+    const ny = Math.max(0, Math.min(map.h - 1, this.visY + dy * FIELD_SPEED * dt));
+    this.visX = nx;
+    this.visY = ny;
+    this.state.position.x = Math.round(nx);
+    this.state.position.y = Math.round(ny);
+
+    const tx = Math.round(nx), ty = Math.round(ny);
+    if (tx !== this.lastTileX || ty !== this.lastTileY) {
+      this.lastTileX = tx;
+      this.lastTileY = ty;
+      this.onEnterTile(tx, ty, map);
+    }
+  }
+
+  // 新しいマスに入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
+  onEnterTile(nx, ny, map) {
     const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny);
-    const building = (map.buildings || []).find(b => b.x === nx && b.y === ny);
-    const isBoss = map.boss && map.boss.x === nx && map.boss.y === ny && !this.state.flags.seitaiDefeated;
-    const isHiddenNpc = map.hiddenNpc && this.state.flags.seitaiDefeated && map.hiddenNpc.x === nx && map.hiddenNpc.y === ny && !this.state.hiddenEvents.mat;
-    const encounterHit = map.encounter && Math.random() < map.encounter.rate;
-
-    if (exit || building || isBoss || isHiddenNpc || encounterHit) {
-      // 出口／建物／イベントマスは従来通り即時処理（移動アニメは挟まない）
-      this.state.position.x = nx;
-      this.state.position.y = ny;
-      this.visX = nx;
-      this.visY = ny;
-      if (exit) {
-        this.state.position.map = exit.to;
-        this.state.position.x = exit.tx;
-        this.state.position.y = exit.ty;
-        this.visX = exit.tx;
-        this.visY = exit.ty;
-        saveGame(this.state);
-        this.render();
-        if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
-        return;
-      }
-      this.render();
-      if (building) { this.cb.onEnterBuilding(building); return; }
-      if (isBoss) { this.cb.onBoss(map.boss.id); return; }
-      if (isHiddenNpc) { this.cb.onTalkNpc(map.hiddenNpc.id); return; }
-      if (encounterHit) { this.cb.onEncounter(map.encounter.table); return; }
+    if (exit) {
+      this.state.position.map = exit.to;
+      this.state.position.x = exit.tx;
+      this.state.position.y = exit.ty;
+      this.visX = exit.tx;
+      this.visY = exit.ty;
+      this.lastTileX = exit.tx;
+      this.lastTileY = exit.ty;
+      saveGame(this.state);
+      if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
       return;
     }
-
-    this.animateStep(nx, ny);
-  }
-
-  // 通常の1マス移動を滑らかに補間する
-  animateStep(nx, ny) {
-    const fromX = this.state.position.x, fromY = this.state.position.y;
-    this.state.position.x = nx;
-    this.state.position.y = ny;
-    this.moving = true;
-    const dur = 140;
-    const start = performance.now();
-    const step = (now) => {
-      const t = Math.min(1, (now - start) / dur);
-      const ease = 1 - Math.pow(1 - t, 2); // ease-out
-      this.visX = fromX + (nx - fromX) * ease;
-      this.visY = fromY + (ny - fromY) * ease;
-      this.render();
-      if (t < 1) {
-        this._animFrame = requestAnimationFrame(step);
-      } else {
-        this.visX = nx;
-        this.visY = ny;
-        this.moving = false;
-        saveGame(this.state);
-        this.render();
-      }
-    };
-    if (this._animFrame) cancelAnimationFrame(this._animFrame);
-    this._animFrame = requestAnimationFrame(step);
+    const building = (map.buildings || []).find(b => b.x === nx && b.y === ny);
+    if (building) { this.cb.onEnterBuilding(building); return; }
+    if (map.boss && map.boss.x === nx && map.boss.y === ny && !this.state.flags.seitaiDefeated) {
+      this.cb.onBoss(map.boss.id); return;
+    }
+    if (map.hiddenNpc && this.state.flags.seitaiDefeated && map.hiddenNpc.x === nx && map.hiddenNpc.y === ny && !this.state.hiddenEvents.mat) {
+      this.cb.onTalkNpc(map.hiddenNpc.id); return;
+    }
+    if (map.encounter && Math.random() < map.encounter.rate) {
+      this.cb.onEncounter(map.encounter.table);
+      return;
+    }
+    saveGame(this.state);
   }
 
   marker(x, y, tw, th, cameraY, label, color) {
