@@ -142,9 +142,12 @@ function cutinTag(path, cls) {
 function showOverlay(html) { overlay.classList.remove("overlay-battle"); overlay.innerHTML = html; overlay.style.display = "block"; }
 function hideOverlay() { overlay.style.display = "none"; overlay.innerHTML = ""; overlay.classList.remove("overlay-battle"); }
 
-function showChoices(text, choices) {
+function showChoices(text, choices, bgImage) {
   // choices: [{label, onClick}]
-  let html = `<div class="dialog"><p>${text}</p><div class="choices">`;
+  const bgStyle = bgImage
+    ? ` style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('${bgImage}') center/cover no-repeat;"`
+    : "";
+  let html = `<div class="dialog${bgImage ? " shop-bg" : ""}"${bgStyle}><p>${text}</p><div class="choices">`;
   choices.forEach((c, i) => { html += `<button data-i="${i}">${c.label}</button>`; });
   html += `</div></div>`;
   showOverlay(html);
@@ -253,7 +256,7 @@ function openInn() {
         else enterField();
       } },
     { label: "やめる", onClick: backToField },
-  ]);
+  ], "assets/shops/inn.png");
 }
 
 // ---------- 酒場（NPC抽選） ----------
