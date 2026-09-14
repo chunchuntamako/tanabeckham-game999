@@ -139,8 +139,8 @@ PROLOGUE CLEAR「名前だけで、Jへ」
 function cutinTag(path, cls) {
   return `<img src="${path}" class="${cls || "cutin"}" onerror="this.style.display='none'" />`;
 }
-function showOverlay(html) { overlay.innerHTML = html; overlay.style.display = "block"; }
-function hideOverlay() { overlay.style.display = "none"; overlay.innerHTML = ""; }
+function showOverlay(html) { overlay.classList.remove("overlay-battle"); overlay.innerHTML = html; overlay.style.display = "block"; }
+function hideOverlay() { overlay.style.display = "none"; overlay.innerHTML = ""; overlay.classList.remove("overlay-battle"); }
 
 function showChoices(text, choices) {
   // choices: [{label, onClick}]
@@ -411,6 +411,7 @@ function renderBattle(battle) {
       <button id="b_flee">↩ にげる</button>
     </div></div>`;
   showOverlay(html);
+  overlay.classList.add("overlay-battle");
   overlay.querySelector("#b_fight").onclick = () => { if (!battle.command("fight")) renderBattle(battle); };
   overlay.querySelector("#b_neg").onclick = () => { if (!battle.command("negotiate")) renderBattle(battle); };
   overlay.querySelector("#b_item").onclick = () => { if (!battle.command("item")) renderBattle(battle); };
