@@ -43,7 +43,7 @@ const CHAPTER0 = {
     { id: "keizo", name: "ケイゾウ", rank: 3, appearRate: 0.12, sprite: "assets/characters/nakama_03.png", joinCutin: "assets/cutins/keizo_join.png" },
     { id: "mackey", name: "マッキー", rank: 4, appearRate: 0.18, sprite: "assets/characters/nakama_04.png" },
     { id: "issy", name: "イッシー", rank: 5, appearRate: 0.25, sprite: "assets/characters/nakama_05.png" },
-    { id: "hiroshi", name: "ヒロシ君", rank: 6, appearRate: 0.35, sprite: "assets/characters/nakama_06.png" },
+    { id: "hiroshi", name: "ヒロシ君", rank: 6, appearRate: 0.35, sprite: "assets/characters/nakama_06.png", joinCutin: "assets/cutins/hiroshi_join.png" },
   ],
 
   hiddenEventMat: {

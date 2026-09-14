@@ -17,12 +17,12 @@ const MAPS = {
     bg: "assets/maps/field_route.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    // 新しいイラストの看板・入口の実際の位置に合わせて配置
+    // 家だけは扉（1マス）での移動。町・洞窟・練習場はエリア全体に入ったら移動する。
     exits: [
       { x: 4, y: 11, to: "home", tx: 4, ty: 15, label: "自宅" },
-      { x: 3, y: 6, to: "town", tx: 4, ty: 15, label: "町" },
-      { x: 7, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x: 6, y: 6, to: "practice", tx: 0, ty: 9, label: "練習場" },
+      { x1: 1, y1: 5, x2: 3, y2: 8, to: "town", tx: 4, ty: 15, label: "町" },
+      { x1: 5, y1: 0, x2: 8, y2: 2, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
+      { x1: 6, y1: 5, x2: 8, y2: 8, to: "practice", tx: 0, ty: 9, label: "練習場" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -210,7 +210,9 @@ class FieldController {
 
   // 元のマス目に入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
   onEnterTile(nx, ny, map) {
-    const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny);
+    const exit = (map.exits || []).find(ex => ex.x1 !== undefined
+      ? (nx >= ex.x1 && nx <= ex.x2 && ny >= ex.y1 && ny <= ex.y2)
+      : (ex.x === nx && ex.y === ny));
     if (exit) {
       this.state.position.map = exit.to;
       this.state.position.x = exit.tx;
@@ -257,6 +259,32 @@ class FieldController {
     ctx.restore();
   }
 
+  // エリア全体が移動先になっている出口（町・洞窟・練習場など）を、枠＋ラベルで示す
+  zoneMarker(ex, tw, th, cameraY, color, borderColor) {
+    const ctx = this.ctx;
+    const rx = ex.x1 * tw;
+    const ry = ex.y1 * th - cameraY;
+    const rw = (ex.x2 - ex.x1 + 1) * tw;
+    const rh = (ex.y2 - ex.y1 + 1) * th;
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = borderColor;
+    ctx.strokeRect(rx, ry, rw, rh);
+    if (ex.label) {
+      const cx = rx + rw / 2;
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0,0,0,.75)";
+      ctx.strokeText(ex.label, cx, ry + 16);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(ex.label, cx, ry + 16);
+    }
+    ctx.restore();
+  }
+
   render() {
     const map = this.currentMap();
     if (map.bgm) playBGM(map.bgm);
@@ -279,7 +307,10 @@ class FieldController {
     ctx.textAlign = "left";
     ctx.fillText(map.name, 16, 29);
 
-    (map.exits || []).forEach(ex => this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)"));
+    (map.exits || []).forEach(ex => {
+      if (ex.x1 !== undefined) this.zoneMarker(ex, tw, th, cameraY, "rgba(54,162,235,.22)", "rgba(54,162,235,.9)");
+      else this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)");
+    });
     (map.buildings || []).forEach(b => this.marker(b.x, b.y, tw, th, cameraY, b.name, "rgba(240,170,40,.90)"));
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
