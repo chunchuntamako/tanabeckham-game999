@@ -27,17 +27,17 @@ const MAPS = {
   },
   town: {
     name: "町",
-    bg: "assets/maps/town_map.png",
+    bg: "assets/maps/town_map.png?v=2",
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 15, label: "郊外" }],
-    // 建物を縦方向にもゆったり間隔を空けて配置
+    // 新しいイラストの各建物の扉の実際の位置に合わせて配置
     buildings: [
       { x: 4, y: 2, id: "jobcenter", name: "職安" },
-      { x: 1, y: 6, id: "weaponshop", name: "武器屋" },
-      { x: 7, y: 6, id: "itemshop", name: "道具屋" },
-      { x: 1, y: 11, id: "tavern", name: "酒場" },
-      { x: 7, y: 11, id: "inn", name: "宿屋" },
+      { x: 2, y: 6, id: "weaponshop", name: "武器屋" },
+      { x: 6, y: 6, id: "itemshop", name: "道具屋" },
+      { x: 2, y: 9, id: "tavern", name: "酒場" },
+      { x: 6, y: 9, id: "inn", name: "宿屋" },
     ],
     encounter: null,
   },
