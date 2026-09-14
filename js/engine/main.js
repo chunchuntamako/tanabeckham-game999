@@ -192,6 +192,17 @@ function enterBuilding(building) {
   else if (building.id === "inn") openInn();
   else if (building.id === "tavern") openTavern();
   else if (building.id === "jobcenter") openJobCenter();
+  else if (building.id === "house_interior") showHomeInterior();
+}
+
+// 自宅の庭から「家の中へ」で、冒頭で母と話した室内の絵にいつでも戻れるようにする
+function showHomeInterior() {
+  showOverlay(`<div class="full-screen-art"><div class="art-frame">
+    <img src="assets/opening/opening_home.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
+    <button id="homeInteriorBack" class="art-hotspot" style="top:88%;height:9%;left:10%;width:80%;" aria-label="戻る"></button>
+  </div></div>`);
+  sizeArtFrames();
+  document.getElementById("homeInteriorBack").onclick = backToField;
 }
 
 function backToField() { FIELD.enable(); hideOverlay(); FIELD.render(); }

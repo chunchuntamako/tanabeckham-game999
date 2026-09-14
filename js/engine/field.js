@@ -9,6 +9,7 @@ const MAPS = {
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 11, label: "フィールド" }],
+    buildings: [{ x: 4, y: 4, id: "house_interior", name: "家の中" }],
     encounter: null,
   },
   field: {
