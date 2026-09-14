@@ -22,7 +22,7 @@ const MAPS = {
       { x: 4, y: 11, to: "home", tx: 4, ty: 15, label: "自宅" },
       { x1: 1, y1: 5, x2: 3, y2: 8, to: "town", tx: 4, ty: 15, label: "町" },
       { x1: 5, y1: 0, x2: 8, y2: 2, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x1: 6, y1: 5, x2: 8, y2: 8, to: "practice", tx: 0, ty: 9, label: "練習場" },
+      { x1: 6, y1: 5, x2: 8, y2: 8, to: "practice", tx: 4, ty: 13, label: "練習場" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -44,10 +44,11 @@ const MAPS = {
   },
   practice: {
     name: "サッカー練習場",
-    bg: "assets/backgrounds/field.png",
+    bg: "assets/maps/practice_map.png?v=1",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 0, y: 9, to: "field", tx: 6, ty: 6, label: "戻る" }],
+    // 新しいイラストの入口ゲート（下部中央）の実際の位置に合わせて配置
+    exits: [{ x: 4, y: 13, to: "field", tx: 7, ty: 7, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
