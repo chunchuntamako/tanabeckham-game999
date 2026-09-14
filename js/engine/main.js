@@ -396,7 +396,7 @@ function runBattle(enemyId, onEnd) {
 
 function renderBattle(battle) {
   const p = STATE.player;
-  const enemyImgTag = battle.enemy.sprite ? `<img src="${battle.enemy.sprite}" class="enemy-sprite" onerror="this.style.display='none'" />` : "";
+  const enemyImgTag = battle.enemy.sprite ? `<div class="enemy-sprite-wrap"><img src="${battle.enemy.sprite}" class="enemy-sprite" onerror="this.style.display='none'" /></div>` : "";
   const partyHtml = (STATE.party || []).map(m => `<div class="party-card ${m.dead?'dead':''}">${m.sprite?`<img src="${m.sprite}">`:''}<span>${m.name}<br>HP ${Math.max(0,m.hp||0)}${m.dead?' / 離脱':''}</span></div>`).join("");
   let html = `<div class="dialog battle">
     ${enemyImgTag}
