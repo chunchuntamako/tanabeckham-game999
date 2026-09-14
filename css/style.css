@@ -1,0 +1,187 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin:0; width:100%; height:100%; background:#0b0d10; overflow:hidden; }
+body {
+  color:#eee;
+  font-family:"Helvetica Neue","Hiragino Kaku Gothic ProN",sans-serif;
+  overscroll-behavior:none;
+  touch-action:none;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+}
+button { font:inherit; }
+
+#game {
+  position:relative;
+  width:min(430px,100vw);
+  height:100dvh;
+  min-height:100svh;
+  background:#111;
+  box-shadow:0 8px 34px rgba(0,0,0,.5);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+  overflow:hidden;
+}
+
+#hud {
+  height:46px;
+  background:linear-gradient(#111,#050505);
+  color:#dfffd9;
+  font-size:11px;
+  line-height:1.35;
+  padding:6px 8px;
+  font-family:monospace;
+  letter-spacing:.1px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  white-space:normal;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.hud-icon { width:15px; height:15px; vertical-align:-3px; object-fit:contain; flex:0 0 auto; }
+
+#stage {
+  position:relative;
+  width:100%;
+  height:calc(100dvh - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height:0;
+  overflow:hidden;
+  background:#000;
+}
+
+#gameCanvas {
+  display:block;
+  width:100%;
+  height:100%;
+  background:#000;
+  image-rendering:auto;
+}
+
+#overlay {
+  position:absolute;
+  inset:0;
+  background:rgba(4,6,10,.93);
+  display:none;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  backdrop-filter:blur(3px);
+  z-index:20;
+  padding-bottom:max(16px,env(safe-area-inset-bottom));
+  touch-action:pan-y;
+}
+.dialog {
+  min-height:100%;
+  padding:18px 16px 24px;
+  font-size:15px;
+  line-height:1.65;
+  white-space:pre-wrap;
+}
+.dialog p { margin:6px 0 10px; }
+.dialog .choices { display:flex; flex-direction:column; gap:9px; margin-top:14px; }
+.dialog button {
+  width:100%;
+  min-height:48px;
+  background:linear-gradient(#353a42,#24272c);
+  color:#fff;
+  border:1px solid #6b727d;
+  padding:11px 10px;
+  font-size:15px;
+  cursor:pointer;
+  border-radius:10px;
+  touch-action:manipulation;
+}
+.dialog button:active { background:#4a515c; transform:translateY(1px); }
+.dialog button[disabled] { opacity:.35; pointer-events:none; }
+.title-image { width:100%; max-width:420px; display:block; margin:0 auto 14px; border-radius:12px; }
+
+/* タイトル・オープニングなど、1枚絵をそのまま全画面表示する用途 */
+.full-screen-art { position:absolute; inset:0; overflow:hidden; }
+.full-screen-art img { width:100%; height:100%; object-fit:cover; display:block; }
+.art-hotspot { position:absolute; background:transparent; border:none; padding:0; margin:0; touch-action:manipulation; }
+.art-hotspot:active { background:rgba(255,255,255,.16); }
+.art-hotspot[disabled] { pointer-events:none; }
+.enemy-sprite { max-width:150px; max-height:150px; display:block; margin:8px auto; object-fit:contain; }
+.cutin { max-width:min(78vw,300px); max-height:280px; display:block; margin:2px auto 12px; border-radius:10px; object-fit:contain; }
+.npc-portrait { max-width:130px; max-height:120px; display:inline-block; margin:0 8px 7px 0; border-radius:8px; object-fit:contain; vertical-align:middle; }
+.dialog.battle .log { background:#050505; border:1px solid #333; padding:8px; margin:8px 0; font-size:12px; min-height:92px; border-radius:7px; }
+.party-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 8px; }
+.party-card { display:flex; align-items:center; gap:5px; padding:4px 6px; background:#171a1f; border:1px solid #333; border-radius:6px; font-size:11px; }
+.party-card.dead { opacity:.45; text-decoration:line-through; }
+.party-card img { width:34px; height:34px; object-fit:contain; border-radius:5px; }
+.shoplist { list-style:none; padding:0; margin:7px 0; }
+.shoplist li { margin-bottom:7px; }
+
+/* RPG操作はゲーム画面上に重ねる。縦持ち片手でも届く位置。 */
+#dpad {
+  position:absolute;
+  left:max(14px,env(safe-area-inset-left));
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
+  filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));
+}
+#dpad .drow { display:flex; gap:8px; }
+.dbtn {
+  width:62px;
+  height:58px;
+  font-size:23px;
+  font-weight:bold;
+  border-radius:17px;
+  background:rgba(28,32,38,.76);
+  color:#fff;
+  border:1px solid rgba(220,230,240,.55);
+  backdrop-filter:blur(3px);
+  touch-action:none;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22);
+}
+.dbtn:active { background:rgba(85,94,106,.9); transform:scale(.97); }
+
+#soccerControls {
+  position:absolute;
+  right:max(12px,env(safe-area-inset-right));
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:11;
+  width:154px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
+}
+#soccerControls button {
+  min-height:56px;
+  padding:8px 5px;
+  font-size:13px;
+  font-weight:700;
+  border-radius:16px;
+  background:rgba(21,101,192,.88);
+  color:#fff;
+  border:1px solid #90caf9;
+  touch-action:none;
+  box-shadow:0 3px 7px rgba(0,0,0,.35);
+}
+#soccerControls button:active { filter:brightness(.8); transform:scale(.97); }
+#btn-dash { background:rgba(239,108,0,.9) !important; }
+#btn-skill { background:rgba(123,31,162,.92) !important; border-color:#ce93d8 !important; }
+
+@media (max-width:380px) {
+  #hud { font-size:10px; }
+  .dbtn { width:56px; height:53px; }
+  #soccerControls { width:142px; }
+  #soccerControls button { min-height:52px; font-size:12px; }
+  .dialog { font-size:14px; padding-left:13px; padding-right:13px; }
+}
+
+@media (min-width:700px) {
+  body { align-items:center; }
+  #game { height:min(900px,100dvh); border-radius:18px; overflow:hidden; }
+  #stage { height:calc(100% - 46px); }
+}

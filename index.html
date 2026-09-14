@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0b0d10" />
+<title>タナベッカムの不遇 序章 Ver.0.1 Mobile</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="game">
+  <div id="hud"></div>
+  <div id="stage">
+    <canvas id="gameCanvas" width="390" height="720"></canvas>
+    <div id="overlay"></div>
+
+    <div id="dpad" aria-label="移動操作">
+      <button id="btn-up" class="dbtn up">▲</button>
+      <div class="drow">
+        <button id="btn-left" class="dbtn">◀</button>
+        <button id="btn-down" class="dbtn">▼</button>
+        <button id="btn-right" class="dbtn">▶</button>
+      </div>
+    </div>
+
+    <div id="soccerControls" style="display:none;">
+      <button id="btn-dash">ダッシュ</button>
+      <button id="btn-pass">パス</button>
+      <button id="btn-shoot">シュート</button>
+      <button id="btn-skill" style="display:none;">必殺技</button>
+    </div>
+  </div>
+</div>
+
+<!-- データ -->
+<script src="js/data/chapter0.js"></script>
+<script src="js/data/enemies.js"></script>
+<!-- エンジン -->
+<script src="js/engine/images.js"></script>
+<script src="js/engine/audio.js"></script>
+<script src="js/engine/save.js"></script>
+<script src="js/engine/timer.js"></script>
+<script src="js/engine/field.js"></script>
+<script src="js/engine/battle.js"></script>
+<script src="js/engine/soccer.js"></script>
+<script src="js/engine/main.js"></script>
+</body>
+</html>
