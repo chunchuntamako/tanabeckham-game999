@@ -61,8 +61,9 @@ function showTitleScreen() {
   const hasSave = !!loadGame();
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
     <img src="assets/title/title_main.png" onerror="this.style.display='none'">
-    <button id="titleNew" class="art-hotspot" style="top:85.5%;height:7.5%;left:6%;width:88%;" aria-label="はじめから"></button>
-    <button id="titleContinue" class="art-hotspot" style="top:93.5%;height:6%;left:6%;width:88%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
+    <button id="titleNew" class="art-hotspot" style="top:74.0%;height:4.3%;left:9%;width:43%;" aria-label="はじめから"></button>
+    <button id="titleContinue" class="art-hotspot" style="top:79.5%;height:4.7%;left:9%;width:43%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
+    <button id="titleSettings" class="art-hotspot" style="top:85.3%;height:4.7%;left:9%;width:43%;" aria-label="設定"></button>
   </div></div>`);
   sizeArtFrames();
   document.getElementById("titleNew").onclick = () => {
@@ -83,6 +84,9 @@ function showTitleScreen() {
       else { enterField(); TIMER.start(); }
     };
   }
+  document.getElementById("titleSettings").onclick = () => {
+    showChoices("設定\n（この項目は現在準備中です）", [{ label: "戻る", onClick: showTitleScreen }]);
+  };
 }
 
 function startNewGame() {
