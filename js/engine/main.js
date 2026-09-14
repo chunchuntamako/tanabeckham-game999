@@ -323,7 +323,7 @@ function mulberry32(a) {
 
 // ---------- 職業安定所 ----------
 function openJobCenter() {
-  let html = `<div class="dialog"><p>職業安定所：求人を選んでください</p><ul>`;
+  let html = `<div class="dialog shop-bg" style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('assets/shops/jobcenter.png') center/cover no-repeat;"><p>職業安定所：求人を選んでください</p><ul>`;
   CHAPTER0.jobs.forEach((j, i) => { html += `<li><button data-i="${i}">${j.name}</button></li>`; });
   html += `</ul><button id="closeJob">出る</button></div>`;
   showOverlay(html);

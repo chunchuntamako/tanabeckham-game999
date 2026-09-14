@@ -26,6 +26,7 @@ function normalizeSaveData(data) {
   merged.player.learnedSkills = Array.isArray(merged.player.learnedSkills) ? merged.player.learnedSkills : [];
   return merged;
 }
-function saveGame(state){try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));return true;}catch(e){console.error("セーブ失敗:",e);return false;}}
-function loadGame(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;return normalizeSaveData(JSON.parse(raw));}catch(e){console.error("ロード失敗:",e);return null;}}
-function deleteSave(){localStorage.removeItem(SAVE_KEY);}
+// セーブ機能はいったん無効化中（要望により）。呼び出し箇所はそのまま残し、ここで何もしないようにしている。
+function saveGame(state){return false;}
+function loadGame(){return null;}
+function deleteSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
