@@ -91,6 +91,7 @@ class BattleController {
   command(cmd) {
     const p = this.state.player;
     if (this.ended || p.hp <= 0) return this.ended;
+    this.log = []; // 過去ターンのログは表示せず、このターンのメッセージだけにする
     let consumesTurn = true;
 
     if (cmd === "fight") {
