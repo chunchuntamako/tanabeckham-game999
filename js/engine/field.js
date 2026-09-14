@@ -16,12 +16,12 @@ const MAPS = {
     bg: "assets/maps/field_route.png",
     bgm: "bgm_field",
     w: 9, h: 9,
-    // 南西に自宅と町を近接配置、北東にダンジョン、南東に練習場
+    // 南西に自宅と町を近接配置、北東にダンジョン、練習場は町寄りの南側
     exits: [
       { x: 0, y: 6, to: "home", tx: 2, ty: 0, label: "自宅" },
       { x: 2, y: 8, to: "town", tx: 4, ty: 8, label: "町" },
       { x: 8, y: 2, to: "dungeon", tx: 4, ty: 8, label: "洞窟" },
-      { x: 8, y: 6, to: "practice", tx: 0, ty: 3, label: "練習場" },
+      { x: 5, y: 7, to: "practice", tx: 0, ty: 3, label: "練習場" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -46,7 +46,7 @@ const MAPS = {
     bg: "assets/backgrounds/field.png",
     bgm: "bgm_field",
     w: 5, h: 5,
-    exits: [{ x: 0, y: 3, to: "field", tx: 8, ty: 6, label: "戻る" }],
+    exits: [{ x: 0, y: 3, to: "field", tx: 5, ty: 7, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
@@ -57,8 +57,8 @@ const MAPS = {
     w: 9, h: 9,
     exits: [{ x: 4, y: 8, to: "field", tx: 8, ty: 2, label: "出口" }],
     encounter: { table: "dungeon", rate: 0.18 },
-    // ボスを入口から離し、奥へ進む手応えを出す（入口→ボス→隠しNPCを等間隔に）
-    boss: { x: 4, y: 4, id: "seitaishi", label: "整体師" },
+    // ボスをさらに北（奥）へ。隠しNPCの手前、最深部の関門として配置
+    boss: { x: 4, y: 2, id: "seitaishi", label: "整体師" },
     hiddenNpc: { x: 4, y: 0, id: "oldman_mat", label: "老人" },
   },
 };
