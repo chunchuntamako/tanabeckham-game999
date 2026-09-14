@@ -233,7 +233,7 @@ function openInn() {
         STATE.player.hp = STATE.player.maxHp;
         STATE.player.stamina = STATE.player.maxStamina;
         const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.innCost.time);
-        STATE.position = { map: "home", x: 2, y: 1 };
+        STATE.position = { map: "home", x: 4, y: 1 };
         saveGame(STATE);
         if (timedOut) onTimeUp(true);
         else enterField();
@@ -321,7 +321,7 @@ function startSeitaiTraining() {
         STATE.player.seitaiPoint += CHAPTER0.seitaiReward.seitaiPoint;
         STATE.player.gold += CHAPTER0.seitaiReward.money;
         const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.seitaiCost.time);
-        STATE.position = { map: "home", x: 2, y: 1 };
+        STATE.position = { map: "home", x: 4, y: 1 };
         saveGame(STATE);
         if (timedOut) {
           onTimeUp(true);
@@ -430,7 +430,7 @@ function renderBattleEnd(result, battle, onEnd) {
 
 function respawnAtCheckpoint() {
   STATE.player.hp = STATE.player.maxHp;
-  STATE.position = { map: "home", x: 2, y: 1 };
+  STATE.position = { map: "home", x: 4, y: 1 };
   saveGame(STATE);
   showChoices("夢オチ……気づくと自宅にいた。運は0になってしまった。", [
     { label: "OK", onClick: enterField },

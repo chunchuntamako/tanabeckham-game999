@@ -7,8 +7,8 @@ const MAPS = {
     name: "田辺の家",
     bg: "assets/maps/field_home.png",
     bgm: "bgm_field",
-    w: 5, h: 5,
-    exits: [{ x: 2, y: 0, to: "field", tx: 0, ty: 12, label: "フィールド" }],
+    w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
+    exits: [{ x: 4, y: 0, to: "field", tx: 0, ty: 12, label: "フィールド" }],
     encounter: null,
   },
   field: {
@@ -18,10 +18,10 @@ const MAPS = {
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // 南西に自宅と町を近接配置、北東にダンジョン、練習場は町寄りの南側
     exits: [
-      { x: 0, y: 12, to: "home", tx: 2, ty: 0, label: "自宅" },
+      { x: 0, y: 12, to: "home", tx: 4, ty: 0, label: "自宅" },
       { x: 2, y: 15, to: "town", tx: 4, ty: 15, label: "町" },
       { x: 8, y: 3, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x: 5, y: 14, to: "practice", tx: 0, ty: 3, label: "練習場" },
+      { x: 5, y: 14, to: "practice", tx: 0, ty: 9, label: "練習場" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -45,8 +45,8 @@ const MAPS = {
     name: "サッカー練習場",
     bg: "assets/backgrounds/field.png",
     bgm: "bgm_field",
-    w: 5, h: 5,
-    exits: [{ x: 0, y: 3, to: "field", tx: 5, ty: 14, label: "戻る" }],
+    w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
+    exits: [{ x: 0, y: 9, to: "field", tx: 5, ty: 14, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
