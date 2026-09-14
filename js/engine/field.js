@@ -60,10 +60,10 @@ const MAPS = {
   },
 };
 
-// 元の1マスを縦横2分割＝4倍の細かさのマス目にして、そのマス単位でコマ送りに動かす
-// （なめらかな補間はせず、瞬間的にパッパッと切り替えることでレトロな歩きにする）。
+// 元の1マスを縦横2分割＝4倍の細かさのマス目にして、そのマス単位で移動する。
+// 瞬間ワープに見えないよう、コマとコマの間は一定速度でスッと滑らせる（昔のRPG風の歩き方）。
 const FIELD_SUBDIV = 2;
-const FIELD_STEP_MS = 150; // 細かいマス1つを移動するのにかかる時間
+const FIELD_STEP_MS = 150; // 細かいマス1つ分を滑らせるのにかかる時間
 
 class FieldController {
   constructor(canvas, state, callbacks) {
@@ -81,7 +81,13 @@ class FieldController {
     this.keys = { up: false, down: false, left: false, right: false };
     this._lastT = null;
     this._loopId = null;
-    this._stepTimer = 0;
+    // 現在アニメ中の1コマ（開始位置→目的位置）の進行管理
+    this.stepping = false;
+    this.stepFromX = this.visX;
+    this.stepFromY = this.visY;
+    this.stepToX = this.visX;
+    this.stepToY = this.visY;
+    this.stepElapsed = 0;
   }
 
   enable() {
@@ -91,7 +97,7 @@ class FieldController {
     document.addEventListener("keyup", this.keyUpHandler);
     this.active = true;
     this._lastT = null;
-    this._stepTimer = 0;
+    this.stepping = false;
     if (this._loopId) cancelAnimationFrame(this._loopId);
     this._loopId = requestAnimationFrame(this.loopHandler);
   }
@@ -100,7 +106,7 @@ class FieldController {
     document.removeEventListener("keyup", this.keyUpHandler);
     this.active = false;
     this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
-    this._stepTimer = 0;
+    this.stepping = false;
     if (this._loopId) { cancelAnimationFrame(this._loopId); this._loopId = null; }
   }
   currentMap() { return MAPS[this.state.position.map] || MAPS.home; }
@@ -134,7 +140,7 @@ class FieldController {
   // タッチD-padからも同じ経路で押しっぱなし移動させる
   setKey(dir, val) { this.keys[dir] = val; }
 
-  // キーを押している間、一定間隔ごとに1コマ分だけパッと移動させるループ（レトロな歩き）
+  // キーを押している間、1コマずつ・コマの間はスライドさせながら動かし続けるループ
   loop(t) {
     if (!this.active) return;
     if (this._lastT == null) this._lastT = t;
@@ -147,6 +153,25 @@ class FieldController {
   }
 
   update(dt) {
+    if (this.stepping) {
+      this.stepElapsed += dt * 1000;
+      const t = Math.min(1, this.stepElapsed / FIELD_STEP_MS);
+      this.visX = this.stepFromX + (this.stepToX - this.stepFromX) * t;
+      this.visY = this.stepFromY + (this.stepToY - this.stepFromY) * t;
+      if (t >= 1) {
+        this.visX = this.stepToX;
+        this.visY = this.stepToY;
+        this.stepping = false;
+        this.state.position.x = Math.round(this.visX);
+        this.state.position.y = Math.round(this.visY);
+        // 元のマス目にぴったり乗った時だけ、出口／建物／ボス等のイベント判定を行う
+        if (Number.isInteger(this.visX) && Number.isInteger(this.visY)) {
+          this.onEnterTile(this.visX, this.visY, this.currentMap());
+        }
+      }
+      return;
+    }
+
     let dx = 0, dy = 0;
     if (this.keys.left) dx = -1;
     else if (this.keys.right) dx = 1;
@@ -154,16 +179,12 @@ class FieldController {
       if (this.keys.up) dy = -1;
       else if (this.keys.down) dy = 1;
     }
-    if (dx === 0 && dy === 0) { this._stepTimer = 0; return; }
-
-    this._stepTimer += dt * 1000;
-    if (this._stepTimer < FIELD_STEP_MS) return;
-    this._stepTimer = 0;
-    this.step(dx, dy);
+    if (dx === 0 && dy === 0) return;
+    this.startStep(dx, dy);
   }
 
-  // 元のマスの1/4サイズ（縦横1/2ずつ）を1コマとして、瞬時に1コマ分だけ移動する
-  step(dx, dy) {
+  // 元のマスの1/4サイズ（縦横1/2ずつ）を1コマとして、次の1コマ分の移動アニメを開始する
+  startStep(dx, dy) {
     const map = this.currentMap();
     const unit = 1 / FIELD_SUBDIV;
     let nx = this.visX + dx * unit;
@@ -173,15 +194,14 @@ class FieldController {
     // 浮動小数の誤差を1/FIELD_SUBDIV刻みに丸め直す
     nx = Math.round(nx * FIELD_SUBDIV) / FIELD_SUBDIV;
     ny = Math.round(ny * FIELD_SUBDIV) / FIELD_SUBDIV;
-    this.visX = nx;
-    this.visY = ny;
-    this.state.position.x = Math.round(nx);
-    this.state.position.y = Math.round(ny);
+    if (nx === this.visX && ny === this.visY) return; // マップの端で動けない
 
-    // 元のマス目にぴったり乗った時だけ、出口／建物／ボス等のイベント判定を行う
-    if (Number.isInteger(nx) && Number.isInteger(ny)) {
-      this.onEnterTile(nx, ny, map);
-    }
+    this.stepFromX = this.visX;
+    this.stepFromY = this.visY;
+    this.stepToX = nx;
+    this.stepToY = ny;
+    this.stepElapsed = 0;
+    this.stepping = true;
   }
 
   // 元のマス目に入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
