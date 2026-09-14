@@ -208,7 +208,7 @@ function openInn() {
         STATE.player.hp = STATE.player.maxHp;
         STATE.player.stamina = STATE.player.maxStamina;
         const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.innCost.time);
-        STATE.position = { map: "home", x: 2, y: 3 };
+        STATE.position = { map: "home", x: 2, y: 1 };
         saveGame(STATE);
         if (timedOut) onTimeUp(true);
         else enterField();
@@ -296,7 +296,7 @@ function startSeitaiTraining() {
         STATE.player.seitaiPoint += CHAPTER0.seitaiReward.seitaiPoint;
         STATE.player.gold += CHAPTER0.seitaiReward.money;
         const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.seitaiCost.time);
-        STATE.position = { map: "home", x: 2, y: 3 };
+        STATE.position = { map: "home", x: 2, y: 1 };
         saveGame(STATE);
         if (timedOut) {
           onTimeUp(true);
@@ -405,7 +405,7 @@ function renderBattleEnd(result, battle, onEnd) {
 
 function respawnAtCheckpoint() {
   STATE.player.hp = STATE.player.maxHp;
-  STATE.position = { map: "home", x: 2, y: 3 };
+  STATE.position = { map: "home", x: 2, y: 1 };
   saveGame(STATE);
   showChoices("夢オチ……気づくと自宅にいた。運は0になってしまった。", [
     { label: "OK", onClick: enterField },
@@ -439,7 +439,7 @@ function resolveMatEvent(choice) {
   } else if (choice.result === "gameOver") {
     showChoices('GAME OVER\n罪状：お年寄り殺しすぎ', [
       { label: "チェックポイントへ", onClick: () => {
-          STATE.position = { map: "field", x: 8, y: 7 };
+          STATE.position = { map: "field", x: 7, y: 5 };
           saveGame(STATE);
           enterField();
         } },
