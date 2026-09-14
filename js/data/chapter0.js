@@ -38,7 +38,7 @@ const CHAPTER0 = {
   jobFailReward: { luck: 1, message: "不遇に耐えた！【運+1】" },
 
   companions: [
-    { id: "higuchi", name: "ヒグチビッチ", rank: 1, appearRate: 0.03, sprite: "assets/characters/nakama_01.png" },
+    { id: "higuchi", name: "ヒグチビッチ", rank: 1, appearRate: 0.03, sprite: "assets/characters/nakama_01.png", joinCutin: "assets/cutins/higuchi_join.png" },
     { id: "yasuda", name: "安田", rank: 2, appearRate: 0.08, sprite: "assets/characters/nakama_02.png" },
     { id: "keizo", name: "ケイゾウ", rank: 3, appearRate: 0.12, sprite: "assets/characters/nakama_03.png" },
     { id: "mackey", name: "マッキー", rank: 4, appearRate: 0.18, sprite: "assets/characters/nakama_04.png" },

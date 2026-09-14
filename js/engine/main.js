@@ -267,13 +267,26 @@ function openTavern() {
     const btn = overlay.querySelector(`[data-i="${i}"]`);
     if (btn) btn.onclick = () => {
       if (STATE.party.length < 2) {
-        STATE.party.push({ ...p.companion, hp: 20 + p.companion.rank * 2, dead: false });
-        saveGame(STATE);
+        joinCompanion(p.companion);
+      } else {
+        openTavern();
       }
-      openTavern();
     };
   });
   overlay.querySelector("#closeTavern").onclick = backToField;
+}
+
+// 仲間が加わった瞬間の演出。カットイン素材があれば一言メッセージと共に表示し、
+// 無ければ従来通り即座に加入する（キャラごとに順次カットインを用意できる想定）。
+function joinCompanion(companion) {
+  STATE.party.push({ ...companion, hp: 20 + companion.rank * 2, dead: false });
+  saveGame(STATE);
+  if (companion.joinCutin) {
+    showOverlay(`<div class="dialog">${cutinTag(companion.joinCutin)}<p><b>${companion.name}</b>が仲間になった！</p><div class="choices"><button id="joinOk">OK</button></div></div>`);
+    document.getElementById("joinOk").onclick = openTavern;
+  } else {
+    openTavern();
+  }
 }
 
 function weightedPickCompanion(rng, exclude) {
