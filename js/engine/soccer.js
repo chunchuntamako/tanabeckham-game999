@@ -15,6 +15,7 @@ class SoccerMatch {
     this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
+    this.pendingGoal = null; this.ballTrail = [];
     this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false, passReq:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
@@ -73,7 +74,7 @@ class SoccerMatch {
     const spd=this.tanabe.speed*runBonus*dribbleBonus;
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
-    if(!this.ball.owner&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
+    if(!this.ball.owner&&!this.pendingGoal&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
     if(this.ball.owner===this.tanabe){
       this.ball.x=this.tanabe.x;this.ball.y=this.tanabe.y-13;
       if(this.pressed(" ","shoot")){
@@ -83,7 +84,7 @@ class SoccerMatch {
         const alignFactor=Math.max(0,1-distX/130);
         const rangeFactor=this.tanabe.y<this.H*.3?1:(this.tanabe.y<this.H*.5?.55:.2);
         const shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor);
-        if(Math.random()<shotChance){this.score.player++;this.banner("GOAL！");this.resetBall("cpu");}
+        if(Math.random()<shotChance){this.pendingGoal={concedeTeam:"cpu",scorer:"player",targetX:this.W/2+(Math.random()-.5)*60,targetY:8};}
       } else if(this.pressed("x","pass")){
         this.stats.pass++;
         const passSpeed=5.5+sk.pass*.25;
@@ -99,7 +100,26 @@ class SoccerMatch {
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
       if(this.mateHoldSec>=.55){const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;}
+    } else if(this.pendingGoal){
+      // シュートが決まった判定はすぐ出さず、ボールを実際にゴールまで一定速度で飛ばしてから得点・リセットする
+      // （通常の浮き球のような減速はさせない＝遠くからのシュートでも必ずゴールへ届く）
+      const pg=this.pendingGoal;
+      const dgx=pg.targetX-this.ball.x, dgy=pg.targetY-this.ball.y, dg=Math.hypot(dgx,dgy)||1;
+      const shotSpeed=8;
+      if(dg<=shotSpeed){
+        this.ball.x=pg.targetX; this.ball.y=pg.targetY;
+        if(pg.scorer==="player"){this.score.player++;this.banner("GOAL！");}
+        else{this.score.cpu++;this.banner("失点……");}
+        this.resetBall(pg.concedeTeam);
+        this.pendingGoal=null;
+      } else {
+        this.ball.x+=dgx/dg*shotSpeed; this.ball.y+=dgy/dg*shotSpeed;
+      }
     } else if(!this.ball.owner){this.ball.x+=this.ball.vx;this.ball.y+=this.ball.vy;this.ball.vx*=.985;this.ball.vy*=.985;}
+
+    // ボールの軌道を残像で見せる（シュート・パスが一瞬でワープしたように見えないように）
+    this.ballTrail.push({x:this.ball.x,y:this.ball.y});
+    if(this.ballTrail.length>7)this.ballTrail.shift();
 
     // 味方も棒立ちにせず、ボールへの反応や攻め上がりで動かす。ただし田辺のすぐ近くのボールは
     // 横取りせず、田辺自身が取れるように優先させる（そこだけ支援位置で待つ）。
@@ -122,7 +142,7 @@ class SoccerMatch {
       if(dm>4){m.x+=dxm/dm*mateSpeed;m.y+=dym/dm*mateSpeed;}
       m.x=Math.max(12,Math.min(this.W-12,m.x));m.y=Math.max(15,Math.min(this.H-15,m.y));
       // 田辺の近くのボールは田辺優先。味方はそれ以外の浮き球だけ拾う。
-      if(!this.ball.owner&&!ballNearTanabe&&this.elapsed>=this.mateNoPickupUntil&&this.distTo(m,this.ball)<13)this.ball.owner=m;
+      if(!this.ball.owner&&!this.pendingGoal&&!ballNearTanabe&&this.elapsed>=this.mateNoPickupUntil&&this.distTo(m,this.ball)<13)this.ball.owner=m;
     });
 
     const debuffed=this.elapsed<this.specialUntil;
@@ -139,7 +159,7 @@ class SoccerMatch {
       const dxe=tx-en.x,dye=ty-en.y,de=Math.hypot(dxe,dye);
       if(de>4){en.x+=dxe/de*enemySpeed;en.y+=dye/de*enemySpeed;}
       en.x=Math.max(12,Math.min(this.W-12,en.x));en.y=Math.max(15,Math.min(this.H-15,en.y));
-      if(!this.ball.owner&&this.distTo(en,this.ball)<13){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
+      if(!this.ball.owner&&!this.pendingGoal&&this.distTo(en,this.ball)<13){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
     });
     this.enemies.forEach(en=>{
       if(this.ball.owner!==en) return;
@@ -151,12 +171,12 @@ class SoccerMatch {
         this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;en.holdSec=0;
       } else if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){
         this.ball.owner=null;this.ball.vy=6;
-        if(Math.random()<(debuffed?.08:.18)){this.score.cpu++;this.banner("失点……");this.resetBall("player");}
+        if(Math.random()<(debuffed?.08:.18)){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
       }
     });
 
     // ボールが画面外へ行ったらセンターへ（得点によるものではないのでキックオフ側の指定なし）
-    if(this.ball.x<-20||this.ball.x>this.W+20||this.ball.y<-20||this.ball.y>this.H+20)this.resetBall();
+    if(!this.pendingGoal&&(this.ball.x<-20||this.ball.x>this.W+20||this.ball.y<-20||this.ball.y>this.H+20))this.resetBall();
     this.render();
   }
   // concedeTeam: 失点した側。そのままセンターサークルからそのチームのボールで再開する
@@ -186,6 +206,12 @@ class SoccerMatch {
       else drawPlayer(e,debuffed?"#b07b7b":"#d32f2f");
     });
     const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-12,this.tanabe.y-18,24,34);else drawPlayer(this.tanabe,"#ffd54f");
+    // ボールの軌跡（シュート・パスがワープに見えないよう、通ってきた道を薄く残す）
+    for(let i=0;i<this.ballTrail.length-1;i++){
+      const p=this.ballTrail[i];
+      c.save();c.globalAlpha=(i+1)/(this.ballTrail.length+1)*.4;c.fillStyle="#fff";
+      c.beginPath();c.arc(p.x,p.y,3,0,Math.PI*2);c.fill();c.restore();
+    }
     c.save();c.fillStyle="rgba(0,0,0,.25)";c.beginPath();c.ellipse(this.ball.x,this.ball.y+7,7,3,0,0,Math.PI*2);c.fill();
     c.font="22px 'Noto Color Emoji',sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText("⚽",this.ball.x,this.ball.y);c.restore();
     c.fillStyle="rgba(0,0,0,.72)";c.fillRect(0,0,this.W,52);c.fillStyle="#fff";c.font="bold 15px sans-serif";c.fillText(`田辺 ${this.score.player} - ${this.score.cpu} 相手`,14,22);c.font="12px sans-serif";c.fillText(`残り ${Math.max(0,Math.ceil(this.duration-this.elapsed))}秒`,14,41);
