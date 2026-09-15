@@ -15,7 +15,7 @@ class SoccerMatch {
     this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
-    this.pendingGoal = null; this.ballTrail = [];
+    this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
     this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false, passReq:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
@@ -74,7 +74,7 @@ class SoccerMatch {
     const spd=this.tanabe.speed*runBonus*dribbleBonus;
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
-    if(!this.ball.owner&&!this.pendingGoal&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
+    if(!this.ball.owner&&!this.pendingGoal&&this.elapsed>=this.tanabeNoPickupUntil&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
     if(this.ball.owner===this.tanabe){
       this.ball.x=this.tanabe.x;this.ball.y=this.tanabe.y-13;
       if(this.pressed(" ","shoot")){
@@ -96,6 +96,8 @@ class SoccerMatch {
           const mate=this.teammates[Math.floor(Math.random()*this.teammates.length)];
           const ang=Math.atan2(mate.y-this.tanabe.y,mate.x-this.tanabe.x); this.ball.owner=null; this.ball.vx=Math.cos(ang)*passSpeed;this.ball.vy=Math.sin(ang)*passSpeed;
         }
+        // 出したばかりの自分のパスを、その場に立ったまま即座に拾い直さないようにする
+        this.tanabeNoPickupUntil=this.elapsed+.35;
       }
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
