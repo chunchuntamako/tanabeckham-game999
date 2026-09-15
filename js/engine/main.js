@@ -121,7 +121,7 @@ PROLOGUE CLEAR「名前だけで、Jへ」
     <div class="choices"><button id="clearReview">クリア記録を見る</button><button id="newGame">最初から遊ぶ</button></div></div>`);
   document.getElementById("clearReview").onclick = () => {
     const r = STATE.matchRecords.tryout || {};
-    showChoices(`入団テスト記録\n得点:${r.goals||0} パス:${r.pass||0} シュート:${r.shoot||0}\n走行距離:${r.distance||0} スプリント:${r.sprintSec||0}秒\n必殺技:${r.special||0}回`, [{label:"戻る",onClick:showClearedTitle}]);
+    showChoices(`入団テスト記録\n得点:${r.goals||0} パス:${r.pass||0} シュート:${r.shoot||0}\n走行距離:${r.distance||0}\n必殺技:${r.special||0}回`, [{label:"戻る",onClick:showClearedTitle}]);
   };
   document.getElementById("newGame").onclick = () => {
     showChoices("セーブを消して最初から遊びますか？", [
@@ -548,7 +548,7 @@ function startTryout() {
 function showTryoutResult(ev) {
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p>ヒロシ君：「……おまえ、走れるな。」
-走行距離:${ev.distance} スプリント:${ev.sprintSec}秒 シュート:${ev.shoot} パス:${ev.pass}
+走行距離:${ev.distance} シュート:${ev.shoot} パス:${ev.pass}
 得点:${ev.goals} 必殺技:${ev.special||0}回
 田辺の登録が決定した。</p>
     <div class="choices"><button id="pressGo">記者会見へ</button></div></div>`);
@@ -600,7 +600,7 @@ function setupTouchControls() {
   });
 
   // サッカー：押している間だけ有効（キーボードのkeydown/keyupと同じ挙動）
-  bind("btn-dash", () => MATCH && MATCH.setKey("Shift", true), () => MATCH && MATCH.setKey("Shift", false));
+  bind("btn-passreq", () => MATCH && MATCH.setKey("r", true), () => MATCH && MATCH.setKey("r", false));
   bind("btn-pass", () => MATCH && MATCH.setKey("x", true), () => MATCH && MATCH.setKey("x", false));
   bind("btn-shoot", () => MATCH && MATCH.setKey(" ", true), () => MATCH && MATCH.setKey(" ", false));
   bind("btn-tackle", () => MATCH && MATCH.setKey("c", true), () => MATCH && MATCH.setKey("c", false));

@@ -1,6 +1,6 @@
 // ===== サッカーパート =====
 // 入団テスト用5対5。田辺のみ操作、他はAI。
-// パス・シュート・ダッシュに加え、習得済みなら「お年寄り殺し！」を実戦使用できる。
+// パス・シュート・タックルに加え、習得済みなら「お年寄り殺し！」を実戦使用できる。
 
 class SoccerMatch {
   constructor(canvas, state, durationSec, onEnd) {
@@ -13,9 +13,9 @@ class SoccerMatch {
     this.tanabe = { x: this.W / 2, y: this.H - 45, speed: 2.45, team: "player" };
     const lane=(i,n)=>this.W*(i+1)/(n+1);
     this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
-    this.enemies = [0,1,2,3,4].map(i => ({ x: lane(i,5), y: 150 + (i%2)*80, team: "cpu", ai: true }));
-    this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0;
-    this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false };
+    this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
+    this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
+    this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false, passReq:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
   }
@@ -46,22 +46,32 @@ class SoccerMatch {
     else this.banner("タックル失敗……");
   }
 
+  // 味方がボールを持っている時に、待たずにすぐ田辺へパスさせる
+  requestPass() {
+    const mate = this.ball.owner;
+    if (!mate || mate.team!=="player" || !mate.ai) return;
+    const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);
+    this.ball.owner=null; this.ball.vx=Math.cos(ang)*5.5; this.ball.vy=Math.sin(ang)*5.5; this.mateHoldSec=0;
+    this.mateNoPickupUntil=this.elapsed+.4;
+    this.banner("パス要求！");
+  }
+
   tick() {
     this.elapsed += 1/30;
     if (this.elapsed >= this.duration) { this.finish(); return; }
     if (this.pressed("z","skill")) this.trySpecial();
     if (this.pressed("c","tackle")) this.tryTackle();
+    if (this.pressed("r","passReq")) this.requestPass();
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
     if(this.keys["ArrowLeft"])dx--; if(this.keys["ArrowRight"])dx++;
     if(this.keys["ArrowUp"])dy--; if(this.keys["ArrowDown"])dy++;
-    const sprinting=this.keys["Shift"] && this.state.player.stamina>0;
     // 走り込み練習は基礎速度、ドリブル練習はボール保持中の速度に効く
     const runBonus=1+sk.run*.02;
     const dribbleBonus=(this.ball.owner===this.tanabe)?1+sk.dribble*.03:1;
-    const spd=this.tanabe.speed*runBonus*dribbleBonus*(sprinting?1.62:1);
-    if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(sprinting){this.stats.sprints+=1/30;this.state.player.stamina=Math.max(0,this.state.player.stamina-0.07);}if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
+    const spd=this.tanabe.speed*runBonus*dribbleBonus;
+    if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
     if(!this.ball.owner&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
     if(this.ball.owner===this.tanabe){
@@ -88,38 +98,61 @@ class SoccerMatch {
       }
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
-      if(this.mateHoldSec>=.55){const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;}
+      if(this.mateHoldSec>=.55){const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;}
     } else if(!this.ball.owner){this.ball.x+=this.ball.vx;this.ball.y+=this.ball.vy;this.ball.vx*=.985;this.ball.vy*=.985;}
 
-    // 味方も棒立ちにせず、ボールへの反応や攻め上がりで動かす。
-    // ボールが浮いている／敵が持っている時は一番近い味方がプレスし、他は控えめに寄る。
-    // 田辺・味方がボールを持っている時は定位置より前に出て攻撃に参加する。
+    // 味方も棒立ちにせず、ボールへの反応や攻め上がりで動かす。ただし田辺のすぐ近くのボールは
+    // 横取りせず、田辺自身が取れるように優先させる（そこだけ支援位置で待つ）。
     const ballLoose=!this.ball.owner;
     const cpuHasBall=this.ball.owner&&this.ball.owner.team==="cpu";
     const playerHasBall=this.ball.owner===this.tanabe||(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai);
+    const ballNearTanabe=this.distTo(this.ball,this.tanabe)<40;
     let nearestMate=null,nearestMateDist=Infinity;
     this.teammates.forEach(m=>{ if(m===this.ball.owner) return; const d=this.distTo(m,this.ball); if(d<nearestMateDist){nearestMateDist=d;nearestMate=m;} });
     const mateSpeed=1.25;
     this.teammates.forEach(m=>{
       if(m===this.ball.owner) return;
       let tx,ty;
-      if(ballLoose||cpuHasBall){
+      if((ballLoose||cpuHasBall)&&!ballNearTanabe){
         if(m===nearestMate){tx=this.ball.x;ty=this.ball.y;}
         else{tx=m.homeX*.8+this.ball.x*.2;ty=m.homeY*.8+this.ball.y*.2;}
       } else if(playerHasBall){tx=m.homeX;ty=Math.max(20,m.homeY-55);}
-      else{tx=m.homeX;ty=m.homeY;}
+      else{tx=m.homeX*.8+this.ball.x*.2;ty=m.homeY*.8+this.ball.y*.2;}
       const dxm=tx-m.x,dym=ty-m.y,dm=Math.hypot(dxm,dym);
       if(dm>4){m.x+=dxm/dm*mateSpeed;m.y+=dym/dm*mateSpeed;}
       m.x=Math.max(12,Math.min(this.W-12,m.x));m.y=Math.max(15,Math.min(this.H-15,m.y));
-      if(!this.ball.owner&&this.distTo(m,this.ball)<13)this.ball.owner=m;
+      // 田辺の近くのボールは田辺優先。味方はそれ以外の浮き球だけ拾う。
+      if(!this.ball.owner&&!ballNearTanabe&&this.elapsed>=this.mateNoPickupUntil&&this.distTo(m,this.ball)<13)this.ball.owner=m;
     });
 
     const debuffed=this.elapsed<this.specialUntil;
     const enemySpeed=debuffed?1.05:1.5;
+    // 敵もボールへ丸ごと群がらず、一番近い1人だけがプレスして、残りは陣形を保って
+    // ボール側へじわっと寄る。ボールを持ったら少し保持した後、前にいる味方へパスを回す。
+    let nearestEnemy=null,nearestEnemyDist=Infinity;
+    this.enemies.forEach(en=>{ if(en===this.ball.owner) return; const d=this.distTo(en,this.ball); if(d<nearestEnemyDist){nearestEnemyDist=d;nearestEnemy=en;} });
     this.enemies.forEach(en=>{
-      if(this.distTo(en,this.ball)>5){const a=Math.atan2(this.ball.y-en.y,this.ball.x-en.x);en.x+=Math.cos(a)*enemySpeed;en.y+=Math.sin(a)*enemySpeed;}
-      if(!this.ball.owner&&this.distTo(en,this.ball)<13){this.ball.owner=en; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
-      if(this.ball.owner===en){this.ball.x=en.x;this.ball.y=en.y+12; if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){this.ball.owner=null;this.ball.vy=6;if(Math.random()<(debuffed?.08:.18)){this.score.cpu++;this.banner("失点……");this.resetBall("player");}}}
+      if(en===this.ball.owner) return;
+      let tx,ty;
+      if(en===nearestEnemy){tx=this.ball.x;ty=this.ball.y;}
+      else{tx=en.homeX*.75+this.ball.x*.25;ty=en.homeY*.75+this.ball.y*.25;}
+      const dxe=tx-en.x,dye=ty-en.y,de=Math.hypot(dxe,dye);
+      if(de>4){en.x+=dxe/de*enemySpeed;en.y+=dye/de*enemySpeed;}
+      en.x=Math.max(12,Math.min(this.W-12,en.x));en.y=Math.max(15,Math.min(this.H-15,en.y));
+      if(!this.ball.owner&&this.distTo(en,this.ball)<13){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
+    });
+    this.enemies.forEach(en=>{
+      if(this.ball.owner!==en) return;
+      this.ball.x=en.x;this.ball.y=en.y+12; en.holdSec=(en.holdSec||0)+1/30;
+      if(en.holdSec<.5) return;
+      const better=this.enemies.filter(o=>o!==en).sort((a,b)=>a.y-b.y)[0];
+      if(better&&Math.random()<(debuffed?.02:.035)){
+        const ang=Math.atan2(better.y-en.y,better.x-en.x);
+        this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;en.holdSec=0;
+      } else if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){
+        this.ball.owner=null;this.ball.vy=6;
+        if(Math.random()<(debuffed?.08:.18)){this.score.cpu++;this.banner("失点……");this.resetBall("player");}
+      }
     });
 
     // ボールが画面外へ行ったらセンターへ（得点によるものではないのでキックオフ側の指定なし）

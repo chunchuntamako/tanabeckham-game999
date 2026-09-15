@@ -201,7 +201,7 @@ button { font:inherit; }
   box-shadow:0 3px 7px rgba(0,0,0,.35);
 }
 #soccerControls button:active { filter:brightness(.8); transform:scale(.97); }
-#btn-dash { background:rgba(239,108,0,.9) !important; }
+#btn-passreq { background:rgba(0,150,136,.9) !important; }
 #btn-tackle { background:rgba(198,40,40,.92) !important; border-color:#ef9a9a !important; }
 #btn-skill { background:rgba(123,31,162,.92) !important; border-color:#ce93d8 !important; }
 
