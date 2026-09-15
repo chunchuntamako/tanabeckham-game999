@@ -11,9 +11,8 @@ class SoccerMatch {
     this.score = { player: 0, cpu: 0 };
     this.ball = { x: this.W / 2, y: this.H / 2, vx: 0, vy: 0, owner: null };
     this.tanabe = { x: this.W / 2, y: this.H - 45, speed: 2.45, team: "player" };
-    const availableParty=(state.party||[]).filter(m=>!m.dead);
     const lane=(i,n)=>this.W*(i+1)/(n+1);
-    this.teammates = [0,1,2,3].map(i => ({ x: lane(i,4), y: this.H - 180 - (i%2)*75, team: "player", ai: true, sprite: availableParty[i] ? availableParty[i].sprite : null }));
+    this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
     this.enemies = [0,1,2,3,4].map(i => ({ x: lane(i,5), y: 150 + (i%2)*80, team: "cpu", ai: true }));
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0;
     this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false };
@@ -92,6 +91,29 @@ class SoccerMatch {
       if(this.mateHoldSec>=.55){const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;}
     } else if(!this.ball.owner){this.ball.x+=this.ball.vx;this.ball.y+=this.ball.vy;this.ball.vx*=.985;this.ball.vy*=.985;}
 
+    // 味方も棒立ちにせず、ボールへの反応や攻め上がりで動かす。
+    // ボールが浮いている／敵が持っている時は一番近い味方がプレスし、他は控えめに寄る。
+    // 田辺・味方がボールを持っている時は定位置より前に出て攻撃に参加する。
+    const ballLoose=!this.ball.owner;
+    const cpuHasBall=this.ball.owner&&this.ball.owner.team==="cpu";
+    const playerHasBall=this.ball.owner===this.tanabe||(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai);
+    let nearestMate=null,nearestMateDist=Infinity;
+    this.teammates.forEach(m=>{ if(m===this.ball.owner) return; const d=this.distTo(m,this.ball); if(d<nearestMateDist){nearestMateDist=d;nearestMate=m;} });
+    const mateSpeed=1.25;
+    this.teammates.forEach(m=>{
+      if(m===this.ball.owner) return;
+      let tx,ty;
+      if(ballLoose||cpuHasBall){
+        if(m===nearestMate){tx=this.ball.x;ty=this.ball.y;}
+        else{tx=m.homeX*.8+this.ball.x*.2;ty=m.homeY*.8+this.ball.y*.2;}
+      } else if(playerHasBall){tx=m.homeX;ty=Math.max(20,m.homeY-55);}
+      else{tx=m.homeX;ty=m.homeY;}
+      const dxm=tx-m.x,dym=ty-m.y,dm=Math.hypot(dxm,dym);
+      if(dm>4){m.x+=dxm/dm*mateSpeed;m.y+=dym/dm*mateSpeed;}
+      m.x=Math.max(12,Math.min(this.W-12,m.x));m.y=Math.max(15,Math.min(this.H-15,m.y));
+      if(!this.ball.owner&&this.distTo(m,this.ball)<13)this.ball.owner=m;
+    });
+
     const debuffed=this.elapsed<this.specialUntil;
     const enemySpeed=debuffed?1.05:1.5;
     this.enemies.forEach(en=>{
@@ -131,7 +153,8 @@ class SoccerMatch {
       else drawPlayer(e,debuffed?"#b07b7b":"#d32f2f");
     });
     const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-12,this.tanabe.y-18,24,34);else drawPlayer(this.tanabe,"#ffd54f");
-    c.fillStyle="#fff";c.beginPath();c.arc(this.ball.x,this.ball.y,5,0,Math.PI*2);c.fill();c.strokeStyle="#111";c.stroke();
+    c.save();c.fillStyle="rgba(0,0,0,.25)";c.beginPath();c.ellipse(this.ball.x,this.ball.y+7,7,3,0,0,Math.PI*2);c.fill();
+    c.font="22px 'Noto Color Emoji',sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText("⚽",this.ball.x,this.ball.y);c.restore();
     c.fillStyle="rgba(0,0,0,.72)";c.fillRect(0,0,this.W,52);c.fillStyle="#fff";c.font="bold 15px sans-serif";c.fillText(`田辺 ${this.score.player} - ${this.score.cpu} 相手`,14,22);c.font="12px sans-serif";c.fillText(`残り ${Math.max(0,Math.ceil(this.duration-this.elapsed))}秒`,14,41);
     c.fillStyle="rgba(0,0,0,.68)";c.fillRect(0,this.H-38,this.W,38);c.font="12px sans-serif";c.fillStyle="#fff";c.fillText(`体力 ${Math.ceil(this.state.player.stamina)}  運 ${this.state.player.luck}`,14,this.H-15);
     if(this.elapsed<this.specialUntil){c.fillStyle="#ffeb3b";c.textAlign="right";c.fillText(`必殺技 ${Math.ceil(this.specialUntil-this.elapsed)}秒`,this.W-12,this.H-15);c.textAlign="left";}
