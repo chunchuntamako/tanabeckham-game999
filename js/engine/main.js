@@ -142,11 +142,16 @@ function cutinTag(path, cls) {
 function showOverlay(html) { overlay.classList.remove("overlay-battle"); overlay.innerHTML = html; overlay.style.display = "block"; }
 function hideOverlay() { overlay.style.display = "none"; overlay.innerHTML = ""; overlay.classList.remove("overlay-battle"); }
 
+// 店舗系メニューの背景イラスト用インラインstyle。両レイヤーにcover/no-repeatを
+// 明示しないと、グラデーション側がauto+repeatになり画面下側が真っ暗に潰れるので注意。
+function shopBgStyle(bgImage) {
+  if (!bgImage) return "";
+  return ` style="background-image:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('${bgImage}');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;"`;
+}
+
 function showChoices(text, choices, bgImage) {
   // choices: [{label, onClick}]
-  const bgStyle = bgImage
-    ? ` style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('${bgImage}') center/cover no-repeat;"`
-    : "";
+  const bgStyle = shopBgStyle(bgImage);
   let html = `<div class="dialog${bgImage ? " shop-bg" : ""}"${bgStyle}><p>${text}</p><div class="choices">`;
   choices.forEach((c, i) => { html += `<button data-i="${i}">${c.label}</button>`; });
   html += `</div></div>`;
@@ -218,9 +223,7 @@ function openShop(categories, bgImage) {
   if (categories.includes("armors")) items = items.concat(CHAPTER0.armors.map(a => ({ ...a, type: "armor" })));
   if (categories.includes("items")) items = items.concat(CHAPTER0.items.map(it => ({ ...it, type: "item" })));
 
-  const bgStyle = bgImage
-    ? ` style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('${bgImage}') center/cover no-repeat;"`
-    : "";
+  const bgStyle = shopBgStyle(bgImage);
   let html = `<div class="dialog shop-bg"${bgStyle}><p>所持金: ${STATE.player.gold}G</p><ul class="shoplist">`;
   items.forEach((it, i) => { html += `<li><button data-i="${i}">${it.name} ${it.price}G</button></li>`; });
   html += `</ul><button id="closeShop">出る</button></div>`;
@@ -263,7 +266,7 @@ function openInn() {
 function openTavern() {
   const seed = STATE.day; // 日ごとに固定の抽選
   const rng = mulberry32(seed);
-  let html = `<div class="dialog"><p>酒場のNPC（本日）</p><ul>`;
+  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/tavern.png")}><p>酒場のNPC（本日）</p><ul>`;
   const flavor = ["酔っぱらい", "旅人", "冒険者", "サッカー好き", "情報屋"];
   const npcCount = 2 + Math.floor(rng() * 2);
   let picked = [];
@@ -323,7 +326,7 @@ function mulberry32(a) {
 
 // ---------- 職業安定所 ----------
 function openJobCenter() {
-  let html = `<div class="dialog shop-bg" style="background:linear-gradient(rgba(10,8,4,.62),rgba(10,8,4,.82)),url('assets/shops/jobcenter.png') center/cover no-repeat;"><p>職業安定所：求人を選んでください</p><ul>`;
+  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/jobcenter.png")}><p>職業安定所：求人を選んでください</p><ul>`;
   CHAPTER0.jobs.forEach((j, i) => { html += `<li><button data-i="${i}">${j.name}</button></li>`; });
   html += `</ul><button id="closeJob">出る</button></div>`;
   showOverlay(html);
