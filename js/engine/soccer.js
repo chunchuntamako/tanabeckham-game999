@@ -121,7 +121,15 @@ class SoccerMatch {
     // goals
     c.strokeRect(this.W/2-55,12,110,22);c.strokeRect(this.W/2-55,this.H-34,110,22);c.restore();
     const drawPlayer=(o,color)=>{c.fillStyle=color;c.beginPath();c.arc(o.x,o.y,8,0,Math.PI*2);c.fill();c.strokeStyle="#fff";c.stroke();};
-    this.teammates.forEach(m=>{const mi=m.sprite?getImage(m.sprite):null;if(mi)c.drawImage(mi,m.x-10,m.y-15,20,28);else drawPlayer(m,"#1976d2");});this.enemies.forEach(e=>drawPlayer(e,this.elapsed<this.specialUntil?"#b07b7b":"#d32f2f"));
+    // 選手はドット絵の味方／敵スプライトで統一表示。読み込み前は従来の丸に自動フォールバック。
+    const teamSprite=getImage("assets/characters/soccer_teammate.png");
+    const enemySprite=getImage("assets/characters/soccer_enemy.png");
+    this.teammates.forEach(m=>{if(teamSprite)c.drawImage(teamSprite,m.x-9,m.y-15,18,26);else drawPlayer(m,"#1976d2");});
+    const debuffed=this.elapsed<this.specialUntil;
+    this.enemies.forEach(e=>{
+      if(enemySprite){c.save();if(debuffed)c.globalAlpha=.55;c.drawImage(enemySprite,e.x-9,e.y-15,18,26);c.restore();}
+      else drawPlayer(e,debuffed?"#b07b7b":"#d32f2f");
+    });
     const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-12,this.tanabe.y-18,24,34);else drawPlayer(this.tanabe,"#ffd54f");
     c.fillStyle="#fff";c.beginPath();c.arc(this.ball.x,this.ball.y,5,0,Math.PI*2);c.fill();c.strokeStyle="#111";c.stroke();
     c.fillStyle="rgba(0,0,0,.72)";c.fillRect(0,0,this.W,52);c.fillStyle="#fff";c.font="bold 15px sans-serif";c.fillText(`田辺 ${this.score.player} - ${this.score.cpu} 相手`,14,22);c.font="12px sans-serif";c.fillText(`残り ${Math.max(0,Math.ceil(this.duration-this.elapsed))}秒`,14,41);
