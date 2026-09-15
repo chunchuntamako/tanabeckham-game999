@@ -603,5 +603,6 @@ function setupTouchControls() {
   bind("btn-dash", () => MATCH && MATCH.setKey("Shift", true), () => MATCH && MATCH.setKey("Shift", false));
   bind("btn-pass", () => MATCH && MATCH.setKey("x", true), () => MATCH && MATCH.setKey("x", false));
   bind("btn-shoot", () => MATCH && MATCH.setKey(" ", true), () => MATCH && MATCH.setKey(" ", false));
+  bind("btn-tackle", () => MATCH && MATCH.setKey("c", true), () => MATCH && MATCH.setKey("c", false));
   bind("btn-skill", () => MATCH && MATCH.setKey("z", true), () => MATCH && MATCH.setKey("z", false));
 }

@@ -16,7 +16,7 @@ class SoccerMatch {
     this.teammates = [0,1,2,3].map(i => ({ x: lane(i,4), y: this.H - 180 - (i%2)*75, team: "player", ai: true, sprite: availableParty[i] ? availableParty[i].sprite : null }));
     this.enemies = [0,1,2,3,4].map(i => ({ x: lane(i,5), y: 150 + (i%2)*80, team: "cpu", ai: true }));
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0;
-    this.actionLatch = { shoot:false, pass:false, skill:false };
+    this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
   }
@@ -38,16 +38,30 @@ class SoccerMatch {
   }
   banner(text) { this.bannerText=text; this.bannerUntil=this.elapsed+2.2; }
 
+  // 相手がボールを持っている時に近づいて奪う。成功率はディフェンス練習の熟練度で上がる。
+  tryTackle() {
+    const target = this.enemies.find(en => this.ball.owner===en && this.distTo(en,this.tanabe)<24);
+    if (!target) return;
+    const chance = Math.min(.85, .3 + this.state.player.soccerSkills.defense*.05);
+    if (Math.random()<chance) { this.ball.owner=this.tanabe; this.stats.defense++; this.banner("タックル成功！ボールを奪った！"); }
+    else this.banner("タックル失敗……");
+  }
+
   tick() {
     this.elapsed += 1/30;
     if (this.elapsed >= this.duration) { this.finish(); return; }
     if (this.pressed("z","skill")) this.trySpecial();
+    if (this.pressed("c","tackle")) this.tryTackle();
 
+    const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
     if(this.keys["ArrowLeft"])dx--; if(this.keys["ArrowRight"])dx++;
     if(this.keys["ArrowUp"])dy--; if(this.keys["ArrowDown"])dy++;
     const sprinting=this.keys["Shift"] && this.state.player.stamina>0;
-    const spd=this.tanabe.speed*(sprinting?1.62:1);
+    // 走り込み練習は基礎速度、ドリブル練習はボール保持中の速度に効く
+    const runBonus=1+sk.run*.02;
+    const dribbleBonus=(this.ball.owner===this.tanabe)?1+sk.dribble*.03:1;
+    const spd=this.tanabe.speed*runBonus*dribbleBonus*(sprinting?1.62:1);
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(sprinting){this.stats.sprints+=1/30;this.state.player.stamina=Math.max(0,this.state.player.stamina-0.07);}if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
     if(!this.ball.owner&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
@@ -55,11 +69,23 @@ class SoccerMatch {
       this.ball.x=this.tanabe.x;this.ball.y=this.tanabe.y-13;
       if(this.pressed(" ","shoot")){
         this.stats.shoot++; this.ball.owner=null; this.ball.vy=-9; this.ball.vx=(Math.random()-.5)*3;
-        const shotChance=Math.min(.82,.22+this.state.player.soccerSkills.shoot*.045+(this.tanabe.y<this.H*.5?.18:0));
-        if(Math.random()<shotChance){this.score.player++;this.banner("GOAL！");this.resetBall();}
+        // ゴール正面（横のズレが小さい）かつ相手陣内に近いほど成功率が上がる
+        const distX=Math.abs(this.tanabe.x-this.W/2);
+        const alignFactor=Math.max(0,1-distX/130);
+        const rangeFactor=this.tanabe.y<this.H*.3?1:(this.tanabe.y<this.H*.5?.55:.2);
+        const shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor);
+        if(Math.random()<shotChance){this.score.player++;this.banner("GOAL！");this.resetBall("cpu");}
       } else if(this.pressed("x","pass")){
-        this.stats.pass++; const mate=this.teammates[Math.floor(Math.random()*this.teammates.length)];
-        const ang=Math.atan2(mate.y-this.tanabe.y,mate.x-this.tanabe.x); this.ball.owner=null; this.ball.vx=Math.cos(ang)*6;this.ball.vy=Math.sin(ang)*6;
+        this.stats.pass++;
+        const passSpeed=5.5+sk.pass*.25;
+        if(dx||dy){
+          // パス練習が身についていると、狙った方向へそのまま強く速いパスが出る
+          const n=Math.hypot(dx,dy)||1;
+          this.ball.owner=null; this.ball.vx=dx/n*passSpeed; this.ball.vy=dy/n*passSpeed;
+        } else {
+          const mate=this.teammates[Math.floor(Math.random()*this.teammates.length)];
+          const ang=Math.atan2(mate.y-this.tanabe.y,mate.x-this.tanabe.x); this.ball.owner=null; this.ball.vx=Math.cos(ang)*passSpeed;this.ball.vy=Math.sin(ang)*passSpeed;
+        }
       }
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
@@ -71,14 +97,19 @@ class SoccerMatch {
     this.enemies.forEach(en=>{
       if(this.distTo(en,this.ball)>5){const a=Math.atan2(this.ball.y-en.y,this.ball.x-en.x);en.x+=Math.cos(a)*enemySpeed;en.y+=Math.sin(a)*enemySpeed;}
       if(!this.ball.owner&&this.distTo(en,this.ball)<13){this.ball.owner=en; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
-      if(this.ball.owner===en){this.ball.x=en.x;this.ball.y=en.y+12; if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){this.ball.owner=null;this.ball.vy=6;if(Math.random()<(debuffed?.08:.18)){this.score.cpu++;this.banner("失点……");this.resetBall();}}}
+      if(this.ball.owner===en){this.ball.x=en.x;this.ball.y=en.y+12; if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){this.ball.owner=null;this.ball.vy=6;if(Math.random()<(debuffed?.08:.18)){this.score.cpu++;this.banner("失点……");this.resetBall("player");}}}
     });
 
-    // ボールが画面外へ行ったらセンターへ
+    // ボールが画面外へ行ったらセンターへ（得点によるものではないのでキックオフ側の指定なし）
     if(this.ball.x<-20||this.ball.x>this.W+20||this.ball.y<-20||this.ball.y>this.H+20)this.resetBall();
     this.render();
   }
-  resetBall(){this.ball.owner=null;this.ball.x=this.W/2;this.ball.y=this.H/2;this.ball.vx=0;this.ball.vy=0;}
+  // concedeTeam: 失点した側。そのままセンターサークルからそのチームのボールで再開する
+  resetBall(concedeTeam){
+    this.ball.owner=null;this.ball.x=this.W/2;this.ball.y=this.H/2;this.ball.vx=0;this.ball.vy=0;
+    if(concedeTeam==="cpu"){const en=this.enemies[0];en.x=this.W/2-10;en.y=this.H/2+18;this.ball.owner=en;}
+    else if(concedeTeam==="player"){this.tanabe.x=this.W/2;this.tanabe.y=this.H/2+18;this.ball.owner=this.tanabe;}
+  }
   finish(){this.disable();saveGame(this.state);this.onEnd({distance:Math.round(this.stats.distance),sprintSec:Math.round(this.stats.sprints),lateActiveSec:Math.round(this.stats.lateActive),pass:this.stats.pass,shoot:this.stats.shoot,defense:this.stats.defense,special:this.stats.special,goals:this.score.player,conceded:this.score.cpu,passed:true});}
 
   render(){
