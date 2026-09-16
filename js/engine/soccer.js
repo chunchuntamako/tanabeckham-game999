@@ -64,6 +64,10 @@ class SoccerMatch {
     if (this.pressed("c","tackle")) this.tryTackle();
     if (this.pressed("r","passReq")) this.requestPass();
 
+    // 第2章・天罰の不遇ルート中は、各所の判定にMISFORTUNE_MODIFIERを反映する
+    const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
+    const mm = CHAPTER2.misfortuneModifier;
+
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
     if(this.keys["ArrowLeft"])dx--; if(this.keys["ArrowRight"])dx++;
@@ -83,8 +87,12 @@ class SoccerMatch {
         const distX=Math.abs(this.tanabe.x-this.W/2);
         const alignFactor=Math.max(0,1-distX/130);
         const rangeFactor=this.tanabe.y<this.H*.3?1:(this.tanabe.y<this.H*.5?.55:.2);
-        const shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor);
-        if(Math.random()<shotChance){this.pendingGoal={concedeTeam:"cpu",scorer:"player",targetX:this.W/2+(Math.random()-.5)*60,targetY:8};}
+        const shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor)-(misfortune?mm.mateShootRatePenalty:0);
+        if(Math.random()<shotChance){
+          // 天罰中はポストに嫌われることがある（得点にはせず、こぼれ球にする）
+          if(misfortune&&Math.random()<mm.postEventRate){this.banner("ポストに嫌われた……");this.ball.owner=null;this.ball.vx=(Math.random()-.5)*3;this.ball.vy=-3;}
+          else this.pendingGoal={concedeTeam:"cpu",scorer:"player",targetX:this.W/2+(Math.random()-.5)*60,targetY:8};
+        }
       } else if(this.pressed("x","pass")){
         this.stats.pass++;
         const passSpeed=5.5+sk.pass*.25;
@@ -101,7 +109,13 @@ class SoccerMatch {
       }
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
-      if(this.mateHoldSec>=.55){const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;}
+      if(this.mateHoldSec>=.55){
+        // 天罰中は田辺へのパス頻度が下がる（パス要求ボタンで呼び込む前提）。0にはしない。
+        const passToTanabeChance=misfortune?Math.max(.15,1-mm.passToTanabeRatePenalty-mm.matePassAccuracyPenalty):1;
+        if(Math.random()<passToTanabeChance){
+          const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;
+        } else { this.mateHoldSec=.3; }
+      }
     } else if(this.pendingGoal){
       // シュートが決まった判定はすぐ出さず、ボールを実際にゴールまで一定速度で飛ばしてから得点・リセットする
       // （通常の浮き球のような減速はさせない＝遠くからのシュートでも必ずゴールへ届く）
@@ -131,7 +145,9 @@ class SoccerMatch {
     const ballNearTanabe=this.distTo(this.ball,this.tanabe)<40;
     let nearestMate=null,nearestMateDist=Infinity;
     this.teammates.forEach(m=>{ if(m===this.ball.owner) return; const d=this.distTo(m,this.ball); if(d<nearestMateDist){nearestMateDist=d;nearestMate=m;} });
-    const mateSpeed=1.25;
+    // 天罰中は味方の反応が鈍る（AI判断力低下）
+    const mateSpeed=misfortune?1.25*(1-mm.mateAiPenalty):1.25;
+    const pickupRadius=misfortune?13-mm.reboundToEnemyBonus*20:13;
     this.teammates.forEach(m=>{
       if(m===this.ball.owner) return;
       let tx,ty;
@@ -144,7 +160,7 @@ class SoccerMatch {
       if(dm>4){m.x+=dxm/dm*mateSpeed;m.y+=dym/dm*mateSpeed;}
       m.x=Math.max(12,Math.min(this.W-12,m.x));m.y=Math.max(15,Math.min(this.H-15,m.y));
       // 田辺の近くのボールは田辺優先。味方はそれ以外の浮き球だけ拾う。
-      if(!this.ball.owner&&!this.pendingGoal&&!ballNearTanabe&&this.elapsed>=this.mateNoPickupUntil&&this.distTo(m,this.ball)<13)this.ball.owner=m;
+      if(!this.ball.owner&&!this.pendingGoal&&!ballNearTanabe&&this.elapsed>=this.mateNoPickupUntil&&this.distTo(m,this.ball)<pickupRadius)this.ball.owner=m;
     });
 
     const debuffed=this.elapsed<this.specialUntil;
@@ -161,7 +177,8 @@ class SoccerMatch {
       const dxe=tx-en.x,dye=ty-en.y,de=Math.hypot(dxe,dye);
       if(de>4){en.x+=dxe/de*enemySpeed;en.y+=dye/de*enemySpeed;}
       en.x=Math.max(12,Math.min(this.W-12,en.x));en.y=Math.max(15,Math.min(this.H-15,en.y));
-      if(!this.ball.owner&&!this.pendingGoal&&this.distTo(en,this.ball)<13){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
+      const enemyPickupRadius=misfortune?13+mm.reboundToEnemyBonus*20:13;
+      if(!this.ball.owner&&!this.pendingGoal&&this.distTo(en,this.ball)<enemyPickupRadius){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
     });
     this.enemies.forEach(en=>{
       if(this.ball.owner!==en) return;
@@ -173,7 +190,8 @@ class SoccerMatch {
         this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;en.holdSec=0;
       } else if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){
         this.ball.owner=null;this.ball.vy=6;
-        if(Math.random()<(debuffed?.08:.18)){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
+        const cpuShotChance=(debuffed?.08:.18)+(misfortune?mm.enemyShootRateBonus+mm.unluckyConcedeRate:0);
+        if(Math.random()<cpuShotChance){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
       }
     });
 

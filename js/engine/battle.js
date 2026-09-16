@@ -117,7 +117,9 @@ class BattleController {
         consumesTurn = false;
       }
     } else if (cmd === "flee") {
-      if (!this.enemy.boss && Math.random() < 0.6) {
+      const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
+      const fleeChance = 0.6 - (misfortune ? CHAPTER2.misfortuneRpgModifier.escapeRatePenalty : 0);
+      if (!this.enemy.boss && Math.random() < fleeChance) {
         this.addLog("うまく逃げ切った！");
         this.ended = true; saveGame(this.state); this.onEnd("flee"); return true;
       }

@@ -12,6 +12,9 @@ const ENEMIES = {
 
   // 中ボス
   seitaishi: { name: "整体師", hp: 80, atk: 10, def: 5, exp: 50, gold: 200, sprite: "assets/bosses/seitaishi.png", boss: true },
+
+  // 第2章：神社奥のボス。CHAPTER2.godBossの数値をそのまま使う（調整はchapter2.js側で行う）
+  god: Object.assign({ sprite: "assets/bosses/god.png" }, CHAPTER2.godBoss),
 };
 
 const ENCOUNTER_TABLES = {

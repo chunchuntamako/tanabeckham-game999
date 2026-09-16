@@ -23,6 +23,9 @@ const MAPS = {
       { x: 3, y: 6, to: "town", tx: 4, ty: 15, label: "町" },
       { x: 7, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
       { x: 6, y: 6, to: "practice", tx: 4, ty: 13, label: "練習場" },
+      // 第2章：公式戦をminMatchesShrine回こなすまでは入口自体が出ない
+      { x: 2, y: 2, to: "shrine", tx: 4, ty: 15, label: "神社",
+        requires: (state) => !!(state.chapter2 && state.chapter2.shrineUnlocked) },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -62,6 +65,17 @@ const MAPS = {
     // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
     hiddenNpc: { x: 4, y: 1, id: "oldman_mat", label: "老人" },
+  },
+  // 第2章：昇格祈願の神社。奥の賽銭箱を開けると「神」が出現する。
+  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  shrine: {
+    name: "神社",
+    bg: "assets/maps/shrine_map.png?v=1",
+    bgm: "bgm_field",
+    w: 9, h: 16,
+    exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 2, label: "戻る" }],
+    chest: { x: 4, y: 2, id: "shrine_offering", label: "賽銭箱" },
+    encounter: null,
   },
 };
 
@@ -211,7 +225,7 @@ class FieldController {
 
   // 元のマス目に入った瞬間に一度だけ呼ばれる（出口／建物／ボス／隠しNPC／エンカウント判定）
   onEnterTile(nx, ny, map) {
-    const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny);
+    const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny && (!ex.requires || ex.requires(this.state)));
     if (exit) {
       this.state.position.map = exit.to;
       this.state.position.x = exit.tx;
@@ -230,9 +244,15 @@ class FieldController {
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && map.hiddenNpc.x === nx && map.hiddenNpc.y === ny && !this.state.hiddenEvents.mat) {
       this.cb.onTalkNpc(map.hiddenNpc.id); return;
     }
-    if (map.encounter && Math.random() < map.encounter.rate) {
-      this.cb.onEncounter(map.encounter.table);
+    if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken && map.chest.x === nx && map.chest.y === ny) {
+      if (this.cb.onChest) this.cb.onChest(map.chest.id);
       return;
+    }
+    if (map.encounter) {
+      // 第2章・天罰の不遇ルート中は敵の遭遇率が上がる
+      const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
+      const rate = map.encounter.rate + (misfortune ? CHAPTER2.misfortuneRpgModifier.encounterRateBonus : 0);
+      if (Math.random() < rate) { this.cb.onEncounter(map.encounter.table); return; }
     }
     saveGame(this.state);
   }
@@ -280,10 +300,11 @@ class FieldController {
     ctx.textAlign = "left";
     ctx.fillText(map.name, 16, 29);
 
-    (map.exits || []).forEach(ex => this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)"));
+    (map.exits || []).filter(ex => !ex.requires || ex.requires(this.state)).forEach(ex => this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)"));
     (map.buildings || []).forEach(b => this.marker(b.x, b.y, tw, th, cameraY, b.name, "rgba(240,170,40,.90)"));
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
+    if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken) this.marker(map.chest.x, map.chest.y, tw, th, cameraY, map.chest.label || "宝箱", "rgba(230,200,60,.92)");
 
     // プレイヤー。顔がわかる大きさまで拡大し、足元基準で描画（複数マスにまたがってOK）。
     const playerImg = getImage("assets/characters/tanabe.png?v=2");

@@ -106,11 +106,12 @@ function hudLoop() {
     const timePart = inCh2
       ? `次の公式戦まで ${CH2TIMER ? CH2TIMER.formatTime() : "--:--"}`
       : `${STATE.day}日目 ${TIMER ? TIMER.formatTime() : "--:--"}`;
+    const misfortunePart = inCh2 && STATE.chapter2.misfortuneMode ? ` <span style="color:#ff8a80">不遇</span>` : "";
     hud.innerHTML = `<b>Lv${STATE.player.level}</b>` +
       `<img class="hud-icon" src="assets/ui/icon_hp.png">${STATE.player.hp}/${STATE.player.maxHp}` +
       `<img class="hud-icon" src="assets/ui/icon_stamina.png">${Math.ceil(STATE.player.stamina)}/${STATE.player.maxStamina}` +
       ` G:${STATE.player.gold} <img class="hud-icon" src="assets/ui/icon_luck.png">${STATE.player.luck}` +
-      ` | ${timePart}`;
+      ` | ${timePart}${misfortunePart}`;
   }
   requestAnimationFrame(hudLoop);
 }
@@ -212,6 +213,69 @@ function finishChapter2Match(evalResult) {
   };
 }
 
+// ---------- 第2章：神社①・賽銭・神戦・天罰 ----------
+// プレイヤーに選択肢は出さない（企画仕様どおり、盗む/盗まないの分岐は作らない）
+function onChest(id) {
+  if (id !== "shrine_offering") return;
+  FIELD.disable();
+  if (CH2TIMER) CH2TIMER.pause();
+  STATE.chapter2.offeringTaken = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>宝箱を開けた。
+お賽銭を手に入れた！
+
+（画面の端に、誰かがこちらをじっと見ている気配がした……）</p>
+    <div class="choices"><button id="chestOk">……</button></div></div>`);
+  document.getElementById("chestOk").onclick = () => { hideOverlay(); startGodBattle(); };
+}
+
+function startGodBattle() {
+  FIELD.disable();
+  IN_BATTLE = true;
+  playBGM("bgm_boss");
+  const battle = new BattleController(STATE, "god", (result) => {
+    IN_BATTLE = false;
+    if (result === "win") playBGM("bgm_victory", { loop: false });
+    renderGodBattleEnd(result, battle);
+  });
+  renderBattle(battle);
+}
+
+// 神戦は勝っても負けても「賽銭を取ったこと」自体への天罰が発生する
+function renderGodBattleEnd(result, battle) {
+  if (result === "win") {
+    if (!STATE.player.titles.includes(CHAPTER2.titles.god)) STATE.player.titles.push(CHAPTER2.titles.god);
+    STATE.chapter2.godDefeated = true;
+  }
+  STATE.chapter2.divinePunishment = true;
+  STATE.chapter2.misfortuneMode = true;
+  STATE.player.hp = STATE.player.maxHp;
+  const msg = result === "win"
+    ? `神を撃破した！\n隠し称号「${CHAPTER2.titles.god}」を獲得した。\nしかし賽銭を取った罰は消えないようだ……`
+    : "神の力の前に、田辺は膝をついた……\nしかし賽銭を取った罰は消えないようだ……";
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>${msg}</p><div class="choices"><button id="godBattleOk">OK</button></div></div>`);
+  document.getElementById("godBattleOk").onclick = () => {
+    hideOverlay();
+    saveGame(STATE);
+    showHiroshiSonEvent();
+  };
+}
+
+function showHiroshiSonEvent() {
+  STATE.chapter2.hiroshiSonSeen = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>ひろし君の息子：「…………」
+
+（田辺は特に気にとめなかった。）</p>
+    <div class="choices"><button id="sonOk">OK</button></div></div>`);
+  document.getElementById("sonOk").onclick = () => {
+    hideOverlay();
+    FIELD.enable();
+    FIELD.render();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
 // 画像タグ生成（無ければ自動で非表示になるので、既存のcolored-boxフォールバックと併用可）
 function cutinTag(path, cls) {
   return `<img src="${path}" class="${cls || "cutin"}" onerror="this.style.display='none'" />`;
@@ -265,6 +329,7 @@ function enterField() {
     onTalkNpc: (id) => talkNpc(id),
     onBoss: (id) => startBossBattle(id),
     onEnterPractice: () => enterPracticeMenu(),
+    onChest: (id) => onChest(id),
   });
   FIELD.enable();
   FIELD.render();
