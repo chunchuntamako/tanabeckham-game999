@@ -40,6 +40,22 @@ const CHAPTER2 = {
   // 途中出場のためのアップエリア行動でmanagerAppealを増やす基準値
   managerAppealThreshold: 100,
 
+  // 天罰下で何試合終えたら監督更迭イベントが起きるか
+  matchesBeforeDismissal: 3,
+
+  // ベンチ試合（ヒグチビッチ主体、田辺は観戦のみ）のTIGAKU勝率
+  benchWinRate: 0.72,
+
+  // アップエリアでの行動。appeal分だけmanagerAppealが増え、stamina分だけ体力を消費する
+  warmupActions: {
+    run: { label: "軽く走る", appeal: 12, stamina: 8 },
+    stretch: { label: "ストレッチ", appeal: 8, stamina: 4 },
+    passby: { label: "監督の前を通る", appeal: 20, stamina: 2 },
+  },
+
+  // 途中出場後、ヒグチビッチから田辺へパスが来にくい（意地悪ではなくAIの得点期待値判断）
+  subInPassPenalty: 0.35,
+
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
 
@@ -69,6 +85,8 @@ const CHAPTER2 = {
     hiroshiDismissed: false,
     higuchibitchJoined: false,
     higuchibitchTransferred: false,
+    benchMode: false,           // true の間、公式戦はベンチ試合（アップエリア）扱いになる
+    matchCountAtPunishment: 0,  // 天罰発生時点のmatchCount（更迭までの試合数カウント用）
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,

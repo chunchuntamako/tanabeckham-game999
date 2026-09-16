@@ -169,13 +169,20 @@ function resumeChapter2() {
 function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
   FIELD && FIELD.disable();
-  showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
-    { label: "試合に出る", onClick: startChapter2Match },
-  ]);
+  // ベンチ入り中は、まずアップエリアで監督にアピールしてから試合に入る
+  if (STATE.chapter2.benchMode && STATE.chapter2.managerAppeal < CHAPTER2.managerAppealThreshold) {
+    enterWarmupMenu();
+  } else {
+    showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
+      { label: "試合に出る", onClick: startChapter2Match },
+    ]);
+  }
 }
 
 // 序盤数試合は不遇補正なし（企画仕様どおり）。SoccerMatchをそのまま流用する。
 function startChapter2Match() {
+  // ベンチ組が途中出場のチャンスを使って出た試合。アピール値は使い切る。
+  if (STATE.chapter2.benchMode) STATE.chapter2.managerAppeal = 0;
   hideOverlay();
   playBGM("bgm_match");
   canvas.style.display = "block";
@@ -201,12 +208,99 @@ function finishChapter2Match(evalResult) {
   const result = evalResult.goals > evalResult.conceded ? "win" : evalResult.goals < evalResult.conceded ? "lose" : "draw";
   saveGame(STATE);
   const resultText = result === "win" ? "勝利！" : result === "lose" ? "敗北……" : "引き分け";
+  const managerNote = evalResult.defense === 0 ? "\n\n監督：「守備もちゃんとやれ」" : "";
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p><b>${resultText}</b>
 田辺 ${evalResult.goals} - ${evalResult.conceded} 相手
-第${STATE.chapter2.matchCount}戦 終了</p>
+第${STATE.chapter2.matchCount}戦 終了${managerNote}</p>
     <div class="choices"><button id="ch2MatchOk">OK</button></div></div>`);
   document.getElementById("ch2MatchOk").onclick = () => {
+    hideOverlay();
+    const dismiss = STATE.chapter2.misfortuneMode && !STATE.chapter2.hiroshiDismissed &&
+      (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
+    if (dismiss) { showManagerDismissalEvent(); return; }
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// ---------- 第2章：監督更迭・ヒグチビッチ加入・ベンチ試合 ----------
+function showManagerDismissalEvent() {
+  showOverlay(`<div class="dialog"><p>「天罰のタナベッカム」――サポーターの声はやがてひろし君自身にも向けられた。
+連敗の責任を問われ、ひろし君は監督を解任された。</p>
+    <div class="choices"><button id="dismissOk">……</button></div></div>`);
+  document.getElementById("dismissOk").onclick = () => {
+    STATE.chapter2.hiroshiDismissed = true;
+    saveGame(STATE);
+    showHiguchiArrivalEvent();
+  };
+}
+
+function showHiguchiArrivalEvent() {
+  showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>新監督：「今日から、ヒグチビッチをレギュラーにする。」
+
+颯爽と現れたヒグチビッチは、シュート・ドリブル・パスすべてが田辺を圧倒していた。
+田辺はベンチスタートになった。</p>
+    <div class="choices"><button id="higuchiOk">……</button></div></div>`);
+  document.getElementById("higuchiOk").onclick = () => {
+    STATE.chapter2.higuchibitchJoined = true;
+    STATE.chapter2.benchMode = true;
+    STATE.chapter2.misfortuneMode = false; // ヒグチビッチの活躍でチームは勝ち始める
+    STATE.chapter2.managerAppeal = 0;
+    saveGame(STATE);
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// アップエリア：田辺はベンチ横で軽い行動のみ可能。managerAppealを貯めて途中出場を狙う。
+function enterWarmupMenu() {
+  const actions = CHAPTER2.warmupActions;
+  const keys = Object.keys(actions);
+  let html = `<div class="dialog"><p>公式戦の時間だ。田辺は今日もベンチスタート。
+アップエリアで監督にアピールしよう。（アピール ${STATE.chapter2.managerAppeal}/${CHAPTER2.managerAppealThreshold}）</p><ul>`;
+  keys.forEach((key, i) => { html += `<li><button data-i="${i}">${actions[key].label}</button></li>`; });
+  html += `</ul><button id="warmupGo">試合を見る（ベンチへ）</button></div>`;
+  showOverlay(html);
+  keys.forEach((key, i) => {
+    overlay.querySelector(`[data-i="${i}"]`).onclick = () => {
+      const a = actions[key];
+      if (STATE.player.stamina >= a.stamina) {
+        STATE.player.stamina -= a.stamina;
+        STATE.chapter2.managerAppeal = Math.min(CHAPTER2.managerAppealThreshold, STATE.chapter2.managerAppeal + a.appeal);
+      }
+      saveGame(STATE);
+      if (STATE.chapter2.managerAppeal >= CHAPTER2.managerAppealThreshold) {
+        showChoices("アピールが監督に届いた！\n今日は途中出場のチャンスだ。", [{ label: "試合へ", onClick: startChapter2Match }]);
+      } else {
+        enterWarmupMenu();
+      }
+    };
+  });
+  document.getElementById("warmupGo").onclick = resolveBenchMatch;
+}
+
+// ベンチのままの試合はヒグチビッチ主体で自動決着する（田辺は操作不可のため）
+function resolveBenchMatch() {
+  hideOverlay();
+  STATE.chapter2.matchCount += 1;
+  if (STATE.chapter2.matchCount >= CHAPTER2.minMatchesShrine) STATE.chapter2.shrineUnlocked = true;
+  STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
+  const win = Math.random() < CHAPTER2.benchWinRate;
+  const draw = !win && Math.random() < 0.3;
+  const scoreP = win ? 1 + Math.floor(Math.random() * 3) : (draw ? 1 : Math.floor(Math.random() * 2));
+  const scoreC = win ? Math.floor(Math.random() * 2) : (draw ? scoreP : 1 + Math.floor(Math.random() * 2));
+  STATE.matchRecords["ch2_" + STATE.chapter2.matchCount] = { bench: true, goals: scoreP, conceded: scoreC };
+  saveGame(STATE);
+  const resultText = scoreP > scoreC ? "勝利！" : scoreP < scoreC ? "敗北……" : "引き分け";
+  showOverlay(`<div class="dialog"><p><b>${resultText}</b>
+ヒグチビッチが躍動する試合だった。
+TIGAKU ${scoreP} - ${scoreC} 相手
+田辺はベンチから見ていた。
+第${STATE.chapter2.matchCount}戦 終了</p>
+    <div class="choices"><button id="benchMatchOk">OK</button></div></div>`);
+  document.getElementById("benchMatchOk").onclick = () => {
     hideOverlay();
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
@@ -249,6 +343,7 @@ function renderGodBattleEnd(result, battle) {
   }
   STATE.chapter2.divinePunishment = true;
   STATE.chapter2.misfortuneMode = true;
+  STATE.chapter2.matchCountAtPunishment = STATE.chapter2.matchCount;
   STATE.player.hp = STATE.player.maxHp;
   const msg = result === "win"
     ? `神を撃破した！\n隠し称号「${CHAPTER2.titles.god}」を獲得した。\nしかし賽銭を取った罰は消えないようだ……`

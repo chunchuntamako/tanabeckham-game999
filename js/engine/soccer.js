@@ -42,9 +42,14 @@ class SoccerMatch {
   tryTackle() {
     const target = this.enemies.find(en => this.ball.owner===en && this.distTo(en,this.tanabe)<24);
     if (!target) return;
-    const chance = Math.min(.85, .3 + this.state.player.soccerSkills.defense*.05);
-    if (Math.random()<chance) { this.ball.owner=this.tanabe; this.stats.defense++; this.banner("タックル成功！ボールを奪った！"); }
-    else this.banner("タックル失敗……");
+    // スタミナが低いと守備の成功率も落ちる
+    const staminaFactor = Math.min(1, this.state.player.stamina / 50);
+    const chance = Math.min(.85, (.3 + this.state.player.soccerSkills.defense*.05) * staminaFactor);
+    if (Math.random()<chance) {
+      this.ball.owner=this.tanabe; this.stats.defense++;
+      this.state.chapter2.defensiveContribution += 1;
+      this.banner("タックル成功！ボールを奪った！");
+    } else this.banner("タックル失敗……");
   }
 
   // 味方がボールを持っている時に、待たずにすぐ田辺へパスさせる
@@ -67,6 +72,8 @@ class SoccerMatch {
     // 第2章・天罰の不遇ルート中は、各所の判定にMISFORTUNE_MODIFIERを反映する
     const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
     const mm = CHAPTER2.misfortuneModifier;
+    // ヒグチビッチ加入後、途中出場した試合ではなかなかパスが来ない（天罰とは別枠）
+    const subIn = this.state.chapter2 && this.state.chapter2.benchMode && !misfortune;
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
@@ -110,8 +117,11 @@ class SoccerMatch {
     } else if(this.ball.owner&&this.ball.owner.team==="player"&&this.ball.owner.ai){
       const mate=this.ball.owner;this.ball.x=mate.x;this.ball.y=mate.y-10;this.mateHoldSec+=1/30;
       if(this.mateHoldSec>=.55){
-        // 天罰中は田辺へのパス頻度が下がる（パス要求ボタンで呼び込む前提）。0にはしない。
-        const passToTanabeChance=misfortune?Math.max(.15,1-mm.passToTanabeRatePenalty-mm.matePassAccuracyPenalty):1;
+        // 天罰中・ヒグチビッチからの途中出場中は田辺へのパス頻度が下がる
+        // （パス要求ボタンで呼び込む前提）。0にはしない。
+        let passToTanabeChance=1;
+        if(misfortune)passToTanabeChance=Math.max(.15,1-mm.passToTanabeRatePenalty-mm.matePassAccuracyPenalty);
+        else if(subIn)passToTanabeChance=Math.max(.15,1-CHAPTER2.subInPassPenalty);
         if(Math.random()<passToTanabeChance){
           const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;
         } else { this.mateHoldSec=.3; }
