@@ -245,6 +245,13 @@ class SoccerMatch {
       else drawPlayer(e,debuffed?"#b07b7b":"#d32f2f");
     });
     const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-12,this.tanabe.y-18,24,34);else drawPlayer(this.tanabe,"#ffd54f");
+    // 呪いレベル分の💩を田辺の頭上に常時表示
+    if(this.state.chapter2&&this.state.chapter2.curseLevel>=1){
+      const n=this.state.chapter2.curseLevel;
+      c.save();c.font="16px 'Noto Color Emoji',sans-serif";c.textAlign="center";
+      for(let i=0;i<n;i++)c.fillText("💩",this.tanabe.x+(i-(n-1)/2)*12,this.tanabe.y-26);
+      c.restore();
+    }
     // ボールの軌跡（シュート・パスがワープに見えないよう、通ってきた道を薄く残す）
     for(let i=0;i<this.ballTrail.length-1;i++){
       const p=this.ballTrail[i];

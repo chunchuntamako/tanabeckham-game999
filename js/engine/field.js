@@ -75,6 +75,8 @@ const MAPS = {
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 2, label: "戻る" }],
     chest: { x: 4, y: 2, id: "shrine_offering", label: "賽銭箱" },
+    // 第2次神社クエスト「お祓い」。curseSuspicionRaisedになるまでは出現しない。
+    altar: { x: 4, y: 8, id: "exorcism_altar", label: "お祓い" },
     encounter: null,
   },
 };
@@ -248,6 +250,10 @@ class FieldController {
       if (this.cb.onChest) this.cb.onChest(map.chest.id);
       return;
     }
+    if (map.altar && this.state.chapter2 && this.state.chapter2.curseSuspicionRaised && map.altar.x === nx && map.altar.y === ny) {
+      if (this.cb.onAltar) this.cb.onAltar(map.altar.id);
+      return;
+    }
     if (map.encounter) {
       // 第2章・天罰の不遇ルート中は敵の遭遇率が上がる
       const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
@@ -305,6 +311,7 @@ class FieldController {
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
     if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken) this.marker(map.chest.x, map.chest.y, tw, th, cameraY, map.chest.label || "宝箱", "rgba(230,200,60,.92)");
+    if (map.altar && this.state.chapter2 && this.state.chapter2.curseSuspicionRaised) this.marker(map.altar.x, map.altar.y, tw, th, cameraY, map.altar.label || "お祓い", "rgba(150,80,200,.92)");
 
     // プレイヤー。顔がわかる大きさまで拡大し、足元基準で描画（複数マスにまたがってOK）。
     const playerImg = getImage("assets/characters/tanabe.png?v=2");
@@ -319,6 +326,16 @@ class FieldController {
     } else {
       ctx.fillStyle = "#ffcc66";
       ctx.fillRect(px + tw * 0.28, py + th * 0.18, tw * 0.44, th * 0.72);
+    }
+
+    // 呪いレベル分の💩を頭上に常時表示（curseLevelが1以上の間）
+    if (this.state.chapter2 && this.state.chapter2.curseLevel >= 1) {
+      const n = this.state.chapter2.curseLevel;
+      ctx.save();
+      ctx.font = `${Math.round(pH * 0.26)}px 'Noto Color Emoji',sans-serif`;
+      ctx.textAlign = "center";
+      for (let i = 0; i < n; i++) ctx.fillText("💩", px + tw / 2 + (i - (n - 1) / 2) * pH * 0.24, py + th - pH - 6);
+      ctx.restore();
     }
   }
 }

@@ -107,11 +107,12 @@ function hudLoop() {
       ? `次の公式戦まで ${CH2TIMER ? CH2TIMER.formatTime() : "--:--"}`
       : `${STATE.day}日目 ${TIMER ? TIMER.formatTime() : "--:--"}`;
     const misfortunePart = inCh2 && STATE.chapter2.misfortuneMode ? ` <span style="color:#ff8a80">不遇</span>` : "";
+    const poopPart = STATE.chapter2 && STATE.chapter2.curseLevel >= 1 ? " " + "💩".repeat(STATE.chapter2.curseLevel) : "";
     hud.innerHTML = `<b>Lv${STATE.player.level}</b>` +
       `<img class="hud-icon" src="assets/ui/icon_hp.png">${STATE.player.hp}/${STATE.player.maxHp}` +
       `<img class="hud-icon" src="assets/ui/icon_stamina.png">${Math.ceil(STATE.player.stamina)}/${STATE.player.maxStamina}` +
       ` G:${STATE.player.gold} <img class="hud-icon" src="assets/ui/icon_luck.png">${STATE.player.luck}` +
-      ` | ${timePart}${misfortunePart}`;
+      ` | ${timePart}${misfortunePart}${poopPart}`;
   }
   requestAnimationFrame(hudLoop);
 }
@@ -220,6 +221,7 @@ function finishChapter2Match(evalResult) {
       (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
     if (dismiss) { showManagerDismissalEvent(); return; }
     if (checkPromotionTrigger()) return;
+    if (checkCurseSuspicionTrigger()) return;
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };
@@ -288,9 +290,83 @@ function showHiguchiTransferEvent() {
     STATE.chapter2.higuchibitchTransferred = true;
     STATE.chapter2.benchMode = false;
     STATE.chapter2.j1Mode = true;
+    STATE.chapter2.matchCountAtJ1Start = STATE.chapter2.matchCount;
     saveGame(STATE);
     hideOverlay();
     FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// ---------- 第2章：お祓い・呪い・💩システム ----------
+function checkCurseSuspicionTrigger() {
+  const c2 = STATE.chapter2;
+  if (c2.j1Mode && !c2.curseSuspicionRaised &&
+      (c2.matchCount - c2.matchCountAtJ1Start) >= CHAPTER2.matchesBeforeCurseSuspicion) {
+    showCurseSuspicionEvent();
+    return true;
+  }
+  return false;
+}
+
+function showCurseSuspicionEvent() {
+  showOverlay(`<div class="dialog"><p>J1の壁は厚く、田辺は苦戦を続けていた。
+ひろし君の息子が再び動き出す――「まだ呪われてるんじゃない？」
+サポーターの声が田辺に届く。「お祓いしてこい！」</p>
+    <div class="choices"><button id="curseSuspicionOk">神社へ向かう</button></div></div>`);
+  document.getElementById("curseSuspicionOk").onclick = () => {
+    STATE.chapter2.curseSuspicionRaised = true;
+    saveGame(STATE);
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+function onAltar(id) {
+  if (id !== "exorcism_altar") return;
+  FIELD.disable();
+  if (CH2TIMER) CH2TIMER.pause();
+  showChoices(`お祓いを受けますか？（G${CHAPTER2.exorcismCost.money}を消費します）`, [
+    { label: "受ける", onClick: performExorcism },
+    { label: "やめる", onClick: () => { hideOverlay(); FIELD.enable(); if (CH2TIMER) CH2TIMER.resume(); } },
+  ]);
+}
+
+// お祓いの結果は既存の「運」パラメータで決まるが、プレイヤーには一切明示しない
+function performExorcism() {
+  if (STATE.player.gold < CHAPTER2.exorcismCost.money) {
+    showChoices("お金が足りない……", [
+      { label: "戻る", onClick: () => { hideOverlay(); FIELD.enable(); if (CH2TIMER) CH2TIMER.resume(); } },
+    ]);
+    return;
+  }
+  STATE.player.gold -= CHAPTER2.exorcismCost.money;
+  STATE.chapter2.nextMatchTimerSec = Math.max(0, STATE.chapter2.nextMatchTimerSec - CHAPTER2.exorcismCost.time);
+  STATE.chapter2.exorcismCount += 1;
+
+  const score = Math.random() * 100 + STATE.player.luck;
+  const th = CHAPTER2.exorcismOutcomeThresholds;
+  let msg;
+  if (score >= th.full) {
+    STATE.chapter2.curseLevel = 0;
+    msg = "タナベッカムの呪いは完全に解けた！";
+  } else if (score >= th.partial) {
+    STATE.chapter2.curseLevel = Math.max(0, STATE.chapter2.curseLevel - 1);
+    msg = "タナベッカムの呪いは少しだけ解けた！";
+  } else {
+    STATE.chapter2.curseLevel = Math.min(CHAPTER2.curseMax, STATE.chapter2.curseLevel + 1);
+    msg = "なんと！タナベッカムはさらに呪われた！";
+    if (STATE.chapter2.curseLevel >= CHAPTER2.curseMax && !STATE.player.titles.includes(CHAPTER2.titles.poop)) {
+      STATE.player.titles.push(CHAPTER2.titles.poop);
+    }
+  }
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>${msg}</p><div class="choices"><button id="exorcismOk">OK</button></div></div>`);
+  document.getElementById("exorcismOk").onclick = () => {
+    hideOverlay();
+    FIELD.enable();
+    FIELD.render();
     if (CH2TIMER) CH2TIMER.resume();
   };
 }
@@ -467,6 +543,7 @@ function enterField() {
     onBoss: (id) => startBossBattle(id),
     onEnterPractice: () => enterPracticeMenu(),
     onChest: (id) => onChest(id),
+    onAltar: (id) => onAltar(id),
   });
   FIELD.enable();
   FIELD.render();

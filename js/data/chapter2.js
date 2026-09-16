@@ -13,6 +13,9 @@ const CHAPTER2 = {
 
   exorcismCost: { money: 200, time: 60 }, // お祓いに必要なG・時間(秒)
   curseMax: 3,
+  // お祓いの結果しきい値。(乱数0-100 + 運)がこの値以上で各結果になる。
+  // プレイヤーには運が関係していることを一切説明しない（隠しステータス扱い）。
+  exorcismOutcomeThresholds: { full: 90, partial: 55 }, // 未満は「さらに呪われた」
 
   // ボス「神」。通常プレイではほぼ勝てないが、理論上は撃破可能な値にする。
   godBoss: { name: "神", hp: 999, atk: 60, def: 40, speed: 20, luck: 30, exp: 0, gold: 0, boss: true },
@@ -66,6 +69,9 @@ const CHAPTER2 = {
     playerShotChancePenalty: 0.06, // 守備が堅く、田辺のシュートが通りにくい
   },
 
+  // J1で何試合苦戦したら「まだ呪われてるんじゃない？」の空気になるか
+  matchesBeforeCurseSuspicion: 3,
+
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
 
@@ -82,6 +88,8 @@ const CHAPTER2 = {
     nextMatchTimerSec: 10 * 60,
     promoted: false,          // J昇格達成
     j1Mode: false,            // true の間、J1難易度補正が試合に常時かかる
+    matchCountAtJ1Start: 0,   // J1開始時点のmatchCount（お祓い誘発までの試合数カウント用）
+    curseSuspicionRaised: false, // 「まだ呪われてるんじゃない？」の空気が立った後trueに
     cleared: false,           // 第2章クリア
 
     // --- 神社①・神・天罰 ---
