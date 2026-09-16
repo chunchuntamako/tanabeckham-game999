@@ -45,7 +45,9 @@ class SoccerMatch {
     if (!target) return;
     // スタミナが低いと守備の成功率も落ちる
     const staminaFactor = Math.min(1, this.state.player.stamina / 50);
-    const chance = Math.min(.85, (.3 + this.state.player.soccerSkills.defense*.05) * staminaFactor);
+    let chance = Math.min(.85, (.3 + this.state.player.soccerSkills.defense*.05) * staminaFactor);
+    // J1編は呪いとは別に、田辺自身の守備の実力不足で通用しにくい
+    if (this.state.chapter2 && this.state.chapter2.j1Mode) chance = Math.max(.08, chance - CHAPTER2.j1Modifier.tackleChancePenalty);
     if (Math.random()<chance) {
       this.ball.owner=this.tanabe; this.stats.defense++;
       this.state.chapter2.defensiveContribution += 1;

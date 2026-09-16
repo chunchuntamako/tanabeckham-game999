@@ -62,10 +62,13 @@ const CHAPTER2 = {
 
 
   // J1編の難易度補正（天罰とは別枠、呪いが解けても常時有効）。勝利不能にはしない。
+  // 「呪いのせいで苦戦している」だけに見えないよう、田辺自身の守備の実力不足も
+  // 軽く効かせておく（tryTackle成功率へのペナルティ）
   j1Modifier: {
     enemySpeedMultiplier: 1.15,    // J1の相手は動きが速い
     enemyShootRateBonus: 0.08,     // 相手の決定率が高い
     playerShotChancePenalty: 0.06, // 守備が堅く、田辺のシュートが通りにくい
+    tackleChancePenalty: 0.1,      // J1の相手には田辺のタックルが通用しにくい
   },
 
   // J1で何試合苦戦したら「まだ呪われてるんじゃない？」の空気になるか
