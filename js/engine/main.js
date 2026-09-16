@@ -205,6 +205,15 @@ function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
   FIELD && FIELD.disable();
   const c2 = STATE.chapter2;
+  // ヒグチビッチ加入後の初戦は、アピールしても絶対に途中出場できない（完全ベンチ確定）
+  if (c2.benchMode && !c2.higuchiDebutDone) {
+    showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。
+
+ヒグチビッチがトップ下で先発。田辺はベンチスタートだ。`, [
+      { label: "試合に出る", onClick: startHiguchiDebutBenchMatch },
+    ]);
+    return;
+  }
   // ベンチ入り中は、まずアップエリアで監督にアピールしてから試合に入る
   if (c2.benchMode && c2.managerAppeal < CHAPTER2.managerAppealThreshold) {
     enterWarmupMenu();
@@ -356,19 +365,31 @@ function showManagerDismissalEvent() {
 function showHiguchiArrivalEvent() {
   showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>新監督：「今日から、ヒグチビッチをレギュラーにする。」
 
-颯爽と現れたヒグチビッチは、シュート・ドリブル・パスすべてが田辺を圧倒していた。
-田辺はベンチスタートになった。</p>
-    <div class="choices"><button id="higuchiOk">……</button></div></div>`);
-  document.getElementById("higuchiOk").onclick = () => {
-    STATE.chapter2.higuchibitchJoined = true;
-    STATE.chapter2.benchMode = true;
-    STATE.chapter2.misfortuneMode = false; // ヒグチビッチの活躍でチームは勝ち始める
-    STATE.chapter2.managerAppeal = 0;
-    STATE.chapter2.matchCountAtHiguchiJoin = STATE.chapter2.matchCount;
-    saveGame(STATE);
-    hideOverlay();
-    FIELD && FIELD.enable();
-    if (CH2TIMER) CH2TIMER.resume();
+颯爽と現れたヒグチビッチは、シュート・ドリブル・パスすべてが田辺を圧倒していた。</p>
+    <div class="choices"><button id="higuchiOk1">……</button></div></div>`);
+  document.getElementById("higuchiOk1").onclick = () => {
+    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>田辺：「これで昇格できますね！」</p>
+      <div class="choices"><button id="higuchiOk2">……</button></div></div>`);
+    document.getElementById("higuchiOk2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>新監督：「次の試合、ヒグチビッチはトップ下。」</p>
+        <div class="choices"><button id="higuchiOk3">……</button></div></div>`);
+      document.getElementById("higuchiOk3").onclick = () => {
+        showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>田辺：「え？」</p>
+          <div class="choices"><button id="higuchiOk4">……</button></div></div>`);
+        document.getElementById("higuchiOk4").onclick = () => {
+          STATE.chapter2.higuchibitchJoined = true;
+          STATE.chapter2.benchMode = true;
+          STATE.chapter2.misfortuneMode = false; // ヒグチビッチの活躍でチームは勝ち始める
+          STATE.chapter2.managerAppeal = 0;
+          STATE.chapter2.matchCountAtHiguchiJoin = STATE.chapter2.matchCount;
+          STATE.chapter2.objective = "次の公式戦に備えよう";
+          saveGame(STATE);
+          hideOverlay();
+          FIELD && FIELD.enable();
+          if (CH2TIMER) CH2TIMER.resume();
+        };
+      };
+    };
   };
 }
 
@@ -665,6 +686,30 @@ function enterWarmupMenu() {
   document.getElementById("warmupGo").onclick = resolveBenchMatch;
 }
 
+// ヒグチビッチ加入後、最初の1試合だけは完全ベンチ確定（アピール不可）。
+// 通常のベンチ試合解決(resolveBenchMatch)をそのまま流用する
+function startHiguchiDebutBenchMatch() {
+  hideOverlay();
+  STATE.chapter2.higuchiDebutDone = true;
+  saveGame(STATE);
+  resolveBenchMatch();
+}
+
+// 完全ベンチ初戦の翌朝、母から「練習してチャンスをつかもう」の一言
+function showHiguchiDebutMomEvent() {
+  STATE.chapter2.higuchiDebutMomShown = true;
+  STATE.chapter2.objective = "練習して出場のチャンスをつかもう";
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>母：「今日はベンチだったのね……。」
+母：「腐らずに、練習してチャンスを待ちましょう。」</p>
+    <div class="choices"><button id="higuchiMomOk">OK</button></div></div>`);
+  document.getElementById("higuchiMomOk").onclick = () => {
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
 // ベンチのままの試合はヒグチビッチ主体で自動決着する（田辺は操作不可のため）
 function resolveBenchMatch() {
   hideOverlay();
@@ -686,6 +731,7 @@ TIGAKU ${scoreP} - ${scoreC} 相手
   document.getElementById("benchMatchOk").onclick = () => {
     hideOverlay();
     if (checkPromotionTrigger()) return;
+    if (STATE.chapter2.higuchiDebutDone && !STATE.chapter2.higuchiDebutMomShown) { showHiguchiDebutMomEvent(); return; }
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };

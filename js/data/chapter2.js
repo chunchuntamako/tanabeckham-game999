@@ -133,6 +133,8 @@ const CHAPTER2 = {
     benchMode: false,              // true の間、公式戦はベンチ試合（アップエリア）扱いになる
     matchCountAtPunishment: 0,     // 天罰発生時点のmatchCount（更迭までの試合数カウント用）
     matchCountAtHiguchiJoin: 0,    // ヒグチビッチ加入時点のmatchCount（昇格までの試合数カウント用）
+    higuchiDebutDone: false,       // ヒグチビッチ加入後の初戦（完全ベンチ確定）を消化したか
+    higuchiDebutMomShown: false,   // 初戦後の母イベント（練習して出場のチャンスをつかもう）を見たか
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,

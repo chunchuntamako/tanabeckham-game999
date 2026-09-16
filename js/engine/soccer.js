@@ -53,14 +53,28 @@ class SoccerMatch {
     } else this.banner("タックル失敗……");
   }
 
-  // 味方がボールを持っている時に、待たずにすぐ田辺へパスさせる
+  // 味方がボールを持っている時に、待たずにすぐ田辺へパスさせる。
+  // 短い間隔で連打すると「しつこい」とteamTrustが下がり、以後パスが来にくくなる
   requestPass() {
     const mate = this.ball.owner;
     if (!mate || mate.team!=="player" || !mate.ai) return;
+    const c2 = this.state.chapter2;
+    const spam = (this.elapsed - (this.lastPassReqAt||-999)) < 1.2;
+    this.lastPassReqAt = this.elapsed;
+    if (c2 && spam) {
+      c2.teamTrust = Math.max(0, c2.teamTrust - 8);
+      this.banner("しつこい！");
+      return;
+    }
+    const trust = (c2 && c2.teamTrust != null) ? c2.teamTrust : 50;
+    if (Math.random() < Math.max(0, (50 - trust) / 150)) {
+      this.banner("パスが来ない……");
+      return;
+    }
     const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);
     this.ball.owner=null; this.ball.vx=Math.cos(ang)*5.5; this.ball.vy=Math.sin(ang)*5.5; this.mateHoldSec=0;
     this.mateNoPickupUntil=this.elapsed+.4;
-    this.banner("パス要求！");
+    this.banner(Math.random() < 0.5 ? "ヘイ！" : "こっち！");
   }
 
   tick() {
@@ -134,7 +148,10 @@ class SoccerMatch {
         // （パス要求ボタンで呼び込む前提）。0にはしない。
         let passToTanabeChance=1;
         if(misfortune)passToTanabeChance=Math.max(.15,1-mm.passToTanabeRatePenalty-mm.matePassAccuracyPenalty);
-        else if(subIn)passToTanabeChance=Math.max(.15,1-CHAPTER2.subInPassPenalty);
+        else if(subIn){
+          const trust=(this.state.chapter2&&this.state.chapter2.teamTrust!=null)?this.state.chapter2.teamTrust:50;
+          passToTanabeChance=Math.max(.15,1-CHAPTER2.subInPassPenalty-Math.max(0,50-trust)*0.004);
+        }
         if(Math.random()<passToTanabeChance){
           const ang=Math.atan2(this.tanabe.y-mate.y,this.tanabe.x-mate.x);this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;this.mateHoldSec=0;this.mateNoPickupUntil=this.elapsed+.4;
         } else { this.mateHoldSec=.3; }
