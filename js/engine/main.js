@@ -195,6 +195,14 @@ function onChapter2MatchDue() {
   // ベンチ入り中は、まずアップエリアで監督にアピールしてから試合に入る
   if (STATE.chapter2.benchMode && STATE.chapter2.managerAppeal < CHAPTER2.managerAppealThreshold) {
     enterWarmupMenu();
+  } else if (STATE.chapter2.matchCount === 1) {
+    // 2戦目の前だけ、勝敗にかかわらず母からの一言を挟む
+    showChoices(`母：「昨日は大活躍だったわね、すごいじゃない！」
+母：「今日も頑張ってね。」
+
+公式戦の時間だ。第2戦。`, [
+      { label: "試合に出る", onClick: startChapter2Match },
+    ]);
   } else {
     showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
       { label: "試合に出る", onClick: startChapter2Match },
