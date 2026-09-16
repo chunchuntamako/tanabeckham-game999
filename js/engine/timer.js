@@ -69,12 +69,11 @@ class Chapter2Timer {
       if (!this.active) return;
       const c2 = this.state.chapter2;
       if (!c2 || !c2.started || c2.cleared) return;
-      if (c2.nextMatchTimerSec > 0) {
-        c2.nextMatchTimerSec -= 1;
-        if (c2.nextMatchTimerSec <= 0) {
-          c2.nextMatchTimerSec = 0;
-          this.onMatchDue();
-        }
+      if (c2.nextMatchTimerSec > 0) c2.nextMatchTimerSec -= 1;
+      // 宿屋等で外部から直接0にクランプされた場合もここで確実に拾う
+      if (c2.nextMatchTimerSec <= 0) {
+        c2.nextMatchTimerSec = 0;
+        this.onMatchDue();
       }
     }, 1000);
   }

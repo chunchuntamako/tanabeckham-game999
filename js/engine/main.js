@@ -30,8 +30,11 @@ function init() {
     if (FIELD && FIELD.active) FIELD.render();
     if (MATCH) MATCH.render();
   });
-  // マップ画像を先読みしておき、切り替わった瞬間に絵が出ない状態を防ぐ
-  ["assets/maps/field_home.png","assets/maps/field_route.png","assets/maps/town_map.png","assets/maps/dungeon_map.png","assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png"]
+  // マップ画像を先読みしておき、切り替わった瞬間に絵が出ない状態を防ぐ。
+  // 背景パスはfield.jsのMAPSを単一の情報源にし、バージョンクエリのズレで
+  // プリロードが効かなくなる事故を防ぐ（MAPSにマップを足せば自動的に先読みされる）。
+  ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png"]
+    .concat(Object.values(MAPS).map(m => m.bg))
     .forEach(p => getImage(p));
   showTitleScreen();
   // 5秒ごと＋画面を閉じる直前に現在位置/残り時間を保存
