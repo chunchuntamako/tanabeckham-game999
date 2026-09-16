@@ -68,7 +68,9 @@ function showTitleScreen() {
     <button id="titleNew" class="art-hotspot" style="top:74.0%;height:4.3%;left:9%;width:43%;" aria-label="はじめから"></button>
     <button id="titleContinue" class="art-hotspot" style="top:79.5%;height:4.7%;left:9%;width:43%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
     <button id="titleSettings" class="art-hotspot" style="top:85.3%;height:4.7%;left:9%;width:43%;" aria-label="設定"></button>
-  </div></div>`);
+  </div>
+  <button id="titleCh2Dev" style="position:absolute;bottom:1.5%;right:3%;padding:6px 10px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">第2章から始める（テスト用）</button>
+  </div>`);
   sizeArtFrames();
   document.getElementById("titleNew").onclick = () => {
     if (hasSave) {
@@ -91,6 +93,12 @@ function showTitleScreen() {
   document.getElementById("titleSettings").onclick = () => {
     showChoices("設定\n（この項目は現在準備中です）", [{ label: "戻る", onClick: showTitleScreen }]);
   };
+  document.getElementById("titleCh2Dev").onclick = () => {
+    showChoices("テスト用：序章をスキップして第2章から始めますか？", [
+      { label: "はい", onClick: startNewGameChapter2 },
+      { label: "やめる", onClick: showTitleScreen },
+    ]);
+  };
 }
 
 function startNewGame() {
@@ -98,6 +106,19 @@ function startNewGame() {
   STATE = defaultSaveData();
   TIMER = new GameTimer(STATE, onTimeUp);
   showMomDialogue();
+}
+
+// テスト用：序章をスキップし、序章クリア相当の状態から第2章を直接開始する
+function startNewGameChapter2() {
+  deleteSave();
+  STATE = defaultSaveData();
+  STATE.flags.prologueClear = true;
+  STATE.flags.joinedFC = true;
+  STATE.flags.timeUpDone = true;
+  STATE.remainingSec = 0;
+  TIMER = new GameTimer(STATE, onTimeUp);
+  hideOverlay();
+  startChapter2();
 }
 
 function hudLoop() {
@@ -781,11 +802,18 @@ function openInn() {
     { label: "泊まる", onClick: () => {
         STATE.player.hp = STATE.player.maxHp;
         STATE.player.stamina = STATE.player.maxStamina;
-        const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.innCost.time);
         STATE.position = { map: "home", x: 4, y: 14 };
-        saveGame(STATE);
-        if (timedOut) onTimeUp(true);
-        else enterField();
+        // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、
+        // 日数経過の判定は使わずそのままフィールドへ戻す。
+        if (STATE.chapter2 && STATE.chapter2.started) {
+          saveGame(STATE);
+          enterField();
+        } else {
+          const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.innCost.time);
+          saveGame(STATE);
+          if (timedOut) onTimeUp(true);
+          else enterField();
+        }
       } },
     { label: "やめる", onClick: backToField },
   ], "assets/shops/inn.png");
@@ -885,15 +913,24 @@ function startSeitaiTraining() {
     { label: "受ける", onClick: () => {
         STATE.player.seitaiPoint += CHAPTER0.seitaiReward.seitaiPoint;
         STATE.player.gold += CHAPTER0.seitaiReward.money;
-        const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.seitaiCost.time);
         STATE.position = { map: "home", x: 4, y: 14 };
-        saveGame(STATE);
-        if (timedOut) {
-          onTimeUp(true);
-        } else {
+        // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、
+        // 日数経過の判定は使わずそのまま研修終了画面へ進む。
+        if (STATE.chapter2 && STATE.chapter2.started) {
+          saveGame(STATE);
           showChoices(`研修終了。整体ポイント+1、給料${CHAPTER0.seitaiReward.money}G。`, [
             { label: "OK", onClick: enterField },
           ]);
+        } else {
+          const timedOut = TIMER.consumeAndAdvanceDay(CHAPTER0.seitaiCost.time);
+          saveGame(STATE);
+          if (timedOut) {
+            onTimeUp(true);
+          } else {
+            showChoices(`研修終了。整体ポイント+1、給料${CHAPTER0.seitaiReward.money}G。`, [
+              { label: "OK", onClick: enterField },
+            ]);
+          }
         }
       } },
     { label: "やめる", onClick: backToField },
@@ -916,9 +953,14 @@ function enterPracticeMenu() {
         STATE.player.stamina -= staminaCost;
         const growth = s === "run" ? 2 : 1; // 走力系は成長しやすい
         STATE.player.soccerSkills[s] += growth;
-        const timedOut = TIMER.consume(CHAPTER0.practiceCost.time);
-        saveGame(STATE);
-        if (timedOut) { onTimeUp(true); return; }
+        // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、時間経過判定はスキップする。
+        if (STATE.chapter2 && STATE.chapter2.started) {
+          saveGame(STATE);
+        } else {
+          const timedOut = TIMER.consume(CHAPTER0.practiceCost.time);
+          saveGame(STATE);
+          if (timedOut) { onTimeUp(true); return; }
+        }
       }
       enterPracticeMenu();
     };
