@@ -268,7 +268,10 @@ class FieldController {
       if (this.cb.onAltar) this.cb.onAltar(map.altar.id);
       return;
     }
-    if (map.encounter) {
+    // 第2章の街道(field)は試合・ストーリーへの移動経路なので、無関係な
+    // ランダムエンカウントでは足止めしない（ダンジョン・警察逃走ダンジョンは対象外）
+    const skipEncounterForCh2 = this.state.chapter2 && this.state.chapter2.started && this.state.position.map === "field";
+    if (map.encounter && !skipEncounterForCh2) {
       // 第2章・天罰の不遇ルート中は敵の遭遇率が上がる
       const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
       const rate = map.encounter.rate + (misfortune ? CHAPTER2.misfortuneRpgModifier.encounterRateBonus : 0);

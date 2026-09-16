@@ -228,7 +228,7 @@ class SoccerMatch {
 
   render(){
     const c=this.ctx; c.clearRect(0,0,this.W,this.H);
-    const bg=getImage("assets/backgrounds/field.png");
+    const bg=getImage("assets/maps/practice_map.png?v=1");
     if(bg){const sc=Math.max(this.W/bg.width,this.H/bg.height),sw=this.W/sc,sh=this.H/sc,sx=(bg.width-sw)/2,sy=(bg.height-sh)/2;c.drawImage(bg,sx,sy,sw,sh,0,0,this.W,this.H);}
     else{c.fillStyle="#2e7d32";c.fillRect(0,0,this.W,this.H);}
     c.save();c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=2;c.strokeRect(12,12,this.W-24,this.H-24);c.beginPath();c.moveTo(12,this.H/2);c.lineTo(this.W-12,this.H/2);c.stroke();c.beginPath();c.arc(this.W/2,this.H/2,36,0,Math.PI*2);c.stroke();
