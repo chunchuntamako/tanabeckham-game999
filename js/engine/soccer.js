@@ -74,6 +74,9 @@ class SoccerMatch {
     const mm = CHAPTER2.misfortuneModifier;
     // ヒグチビッチ加入後、途中出場した試合ではなかなかパスが来ない（天罰とは別枠）
     const subIn = this.state.chapter2 && this.state.chapter2.benchMode && !misfortune;
+    // J1編は天罰とは別に、相手が常に一段強い（呪いが解けても解除されない）
+    const j1 = this.state.chapter2 && this.state.chapter2.j1Mode;
+    const jm = CHAPTER2.j1Modifier;
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
@@ -94,7 +97,10 @@ class SoccerMatch {
         const distX=Math.abs(this.tanabe.x-this.W/2);
         const alignFactor=Math.max(0,1-distX/130);
         const rangeFactor=this.tanabe.y<this.H*.3?1:(this.tanabe.y<this.H*.5?.55:.2);
-        const shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor)-(misfortune?mm.mateShootRatePenalty:0);
+        let shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor);
+        if(misfortune)shotChance-=mm.mateShootRatePenalty;
+        if(j1)shotChance-=jm.playerShotChancePenalty;
+        shotChance=Math.max(.05,shotChance);
         if(Math.random()<shotChance){
           // 天罰中はポストに嫌われることがある（得点にはせず、こぼれ球にする）
           if(misfortune&&Math.random()<mm.postEventRate){this.banner("ポストに嫌われた……");this.ball.owner=null;this.ball.vx=(Math.random()-.5)*3;this.ball.vy=-3;}
@@ -174,7 +180,8 @@ class SoccerMatch {
     });
 
     const debuffed=this.elapsed<this.specialUntil;
-    const enemySpeed=debuffed?1.05:1.5;
+    let enemySpeed=debuffed?1.05:1.5;
+    if(j1)enemySpeed*=jm.enemySpeedMultiplier;
     // 敵もボールへ丸ごと群がらず、一番近い1人だけがプレスして、残りは陣形を保って
     // ボール側へじわっと寄る。ボールを持ったら少し保持した後、前にいる味方へパスを回す。
     let nearestEnemy=null,nearestEnemyDist=Infinity;
@@ -200,7 +207,9 @@ class SoccerMatch {
         this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;en.holdSec=0;
       } else if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){
         this.ball.owner=null;this.ball.vy=6;
-        const cpuShotChance=(debuffed?.08:.18)+(misfortune?mm.enemyShootRateBonus+mm.unluckyConcedeRate:0);
+        let cpuShotChance=(debuffed?.08:.18);
+        if(misfortune)cpuShotChance+=mm.enemyShootRateBonus+mm.unluckyConcedeRate;
+        if(j1)cpuShotChance+=jm.enemyShootRateBonus;
         if(Math.random()<cpuShotChance){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
       }
     });

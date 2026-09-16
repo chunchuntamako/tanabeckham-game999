@@ -219,6 +219,7 @@ function finishChapter2Match(evalResult) {
     const dismiss = STATE.chapter2.misfortuneMode && !STATE.chapter2.hiroshiDismissed &&
       (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
     if (dismiss) { showManagerDismissalEvent(); return; }
+    if (checkPromotionTrigger()) return;
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };
@@ -247,6 +248,46 @@ function showHiguchiArrivalEvent() {
     STATE.chapter2.benchMode = true;
     STATE.chapter2.misfortuneMode = false; // ヒグチビッチの活躍でチームは勝ち始める
     STATE.chapter2.managerAppeal = 0;
+    STATE.chapter2.matchCountAtHiguchiJoin = STATE.chapter2.matchCount;
+    saveGame(STATE);
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// ---------- 第2章：昇格・ヒグチビッチ移籍・J1 ----------
+// ヒグチビッチ加入後、一定試合数をこなすとJ昇格→即アーセナル移籍の流れになる
+function checkPromotionTrigger() {
+  const c2 = STATE.chapter2;
+  if (c2.higuchibitchJoined && !c2.promoted &&
+      (c2.matchCount - c2.matchCountAtHiguchiJoin) >= CHAPTER2.matchesForPromotion) {
+    showPromotionEvent();
+    return true;
+  }
+  return false;
+}
+
+function showPromotionEvent() {
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_messi2.png")}<p>ヒグチビッチの活躍でFC山陽TIGAKUは勝ち星を重ね、ついにJ1昇格を決めた！</p>
+    <div class="choices"><button id="promoOk">……</button></div></div>`);
+  document.getElementById("promoOk").onclick = () => {
+    STATE.chapter2.promoted = true;
+    saveGame(STATE);
+    showHiguchiTransferEvent();
+  };
+}
+
+function showHiguchiTransferEvent() {
+  showOverlay(`<div class="dialog"><p>昇格の熱が冷めやらぬ中、ヒグチビッチは颯爽とアーセナルへ移籍していった。
+長い別れの言葉はなかった。
+
+チームの視線は、再び田辺に集まることになる。</p>
+    <div class="choices"><button id="transferOk">……</button></div></div>`);
+  document.getElementById("transferOk").onclick = () => {
+    STATE.chapter2.higuchibitchTransferred = true;
+    STATE.chapter2.benchMode = false;
+    STATE.chapter2.j1Mode = true;
     saveGame(STATE);
     hideOverlay();
     FIELD && FIELD.enable();
@@ -302,6 +343,7 @@ TIGAKU ${scoreP} - ${scoreC} 相手
     <div class="choices"><button id="benchMatchOk">OK</button></div></div>`);
   document.getElementById("benchMatchOk").onclick = () => {
     hideOverlay();
+    if (checkPromotionTrigger()) return;
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };

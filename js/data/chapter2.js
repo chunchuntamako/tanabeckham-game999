@@ -56,6 +56,16 @@ const CHAPTER2 = {
   // 途中出場後、ヒグチビッチから田辺へパスが来にくい（意地悪ではなくAIの得点期待値判断）
   subInPassPenalty: 0.35,
 
+  // ヒグチビッチ加入後、何試合こなすとJ昇格するか
+  matchesForPromotion: 4,
+
+  // J1編の難易度補正（天罰とは別枠、呪いが解けても常時有効）。勝利不能にはしない。
+  j1Modifier: {
+    enemySpeedMultiplier: 1.15,    // J1の相手は動きが速い
+    enemyShootRateBonus: 0.08,     // 相手の決定率が高い
+    playerShotChancePenalty: 0.06, // 守備が堅く、田辺のシュートが通りにくい
+  },
+
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
 
@@ -71,6 +81,7 @@ const CHAPTER2 = {
     matchCount: 0,
     nextMatchTimerSec: 10 * 60,
     promoted: false,          // J昇格達成
+    j1Mode: false,            // true の間、J1難易度補正が試合に常時かかる
     cleared: false,           // 第2章クリア
 
     // --- 神社①・神・天罰 ---
@@ -85,8 +96,9 @@ const CHAPTER2 = {
     hiroshiDismissed: false,
     higuchibitchJoined: false,
     higuchibitchTransferred: false,
-    benchMode: false,           // true の間、公式戦はベンチ試合（アップエリア）扱いになる
-    matchCountAtPunishment: 0,  // 天罰発生時点のmatchCount（更迭までの試合数カウント用）
+    benchMode: false,              // true の間、公式戦はベンチ試合（アップエリア）扱いになる
+    matchCountAtPunishment: 0,     // 天罰発生時点のmatchCount（更迭までの試合数カウント用）
+    matchCountAtHiguchiJoin: 0,    // ヒグチビッチ加入時点のmatchCount（昇格までの試合数カウント用）
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,
