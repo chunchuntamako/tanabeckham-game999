@@ -5,7 +5,7 @@
 const CHAPTER2 = {
   chapterId: 2,
 
-  matchIntervalSec: 10 * 60, // 次回公式戦までの実プレイ秒数
+  matchIntervalSec: 5 * 60,  // 次回公式戦までの実プレイ秒数
   minMatchesShrine: 2,       // 昇格祈願クエスト解放に必要な最低試合数
   matchDurationSec: 90,      // 公式戦1試合の実プレイ秒数
 
@@ -105,7 +105,7 @@ const CHAPTER2 = {
     // --- 基本進行 ---
     started: false,
     matchCount: 0,
-    nextMatchTimerSec: 10 * 60,
+    nextMatchTimerSec: 5 * 60,
     promoted: false,          // J昇格達成
     j1Mode: false,            // true の間、J1難易度補正が試合に常時かかる
     matchCountAtJ1Start: 0,   // J1開始時点のmatchCount（お祓い誘発までの試合数カウント用）

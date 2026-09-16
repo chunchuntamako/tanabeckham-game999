@@ -177,7 +177,8 @@ function startChapter2() {
   saveGame(STATE);
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p>入団から数週間。田辺はFC山陽TIGAKUの練習に加わる日々を送っていた。
-ヒロシ君：「公式戦は、動き回っているうちに近づいてくる。まずは町や練習場を見て回ってくれ。」</p>
+ヒロシ君：「今日の試合、勝てば単独首位だ。優勝がぐっと近づく。
+まずは町や練習場を見て回って、調子を整えてくれ。」</p>
     <div class="choices"><button id="ch2Go">歩き出す</button></div></div>`);
   document.getElementById("ch2Go").onclick = () => { hideOverlay(); resumeChapter2(); };
 }
@@ -804,8 +805,9 @@ function openInn() {
         STATE.player.stamina = STATE.player.maxStamina;
         STATE.position = { map: "home", x: 4, y: 14 };
         // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、
-        // 日数経過の判定は使わずそのままフィールドへ戻す。
+        // 日数経過の判定は使わず、代わりに次の公式戦までの時間を2分進める。
         if (STATE.chapter2 && STATE.chapter2.started) {
+          STATE.chapter2.nextMatchTimerSec = Math.max(0, STATE.chapter2.nextMatchTimerSec - 120);
           saveGame(STATE);
           enterField();
         } else {
