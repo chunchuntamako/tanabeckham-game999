@@ -268,10 +268,7 @@ class FieldController {
       if (this.cb.onAltar) this.cb.onAltar(map.altar.id);
       return;
     }
-    // 第2章の街道(field)は試合・ストーリーへの移動経路なので、無関係な
-    // ランダムエンカウントでは足止めしない（ダンジョン・警察逃走ダンジョンは対象外）
-    const skipEncounterForCh2 = this.state.chapter2 && this.state.chapter2.started && this.state.position.map === "field";
-    if (map.encounter && !skipEncounterForCh2) {
+    if (map.encounter) {
       // 第2章・天罰の不遇ルート中は敵の遭遇率が上がる
       const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
       const rate = map.encounter.rate + (misfortune ? CHAPTER2.misfortuneRpgModifier.encounterRateBonus : 0);
@@ -284,19 +281,26 @@ class FieldController {
     const ctx = this.ctx;
     const cx = x * tw + tw / 2;
     const cy = y * th + th / 2 - cameraY;
+    const r = Math.max(11, Math.min(tw, th) * 0.26);
     ctx.save();
+    // 背景から浮かせるための白フチ＋影
+    ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 6;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(cx, cy, Math.max(7, Math.min(tw, th) * 0.18), 0, Math.PI * 2);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,255,255,.95)";
+    ctx.stroke();
     if (label) {
-      ctx.font = "bold 11px sans-serif";
+      ctx.font = "bold 15px sans-serif";
       ctx.textAlign = "center";
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(0,0,0,.75)";
-      ctx.strokeText(label, cx, cy - 14);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "rgba(0,0,0,.85)";
+      ctx.strokeText(label, cx, cy - r - 6);
       ctx.fillStyle = "#fff";
-      ctx.fillText(label, cx, cy - 14);
+      ctx.fillText(label, cx, cy - r - 6);
     }
     ctx.restore();
   }
