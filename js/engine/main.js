@@ -460,10 +460,87 @@ function resolveMassage(correct) {
     msg = "施術は空振りだった……報酬はなし。";
   }
   saveGame(STATE);
+  if (checkMasseurArrestTrigger()) return;
   showChoices(msg, [
     { label: "もう一人施術する", onClick: enterMassageJob },
     { label: "やめる", onClick: backToField },
   ]);
+}
+
+// ---------- 第2章：悪徳整体師逮捕・警察逃走ダンジョン・エンディング ----------
+function checkMasseurArrestTrigger() {
+  if (!STATE.chapter2.masseurArrested && STATE.chapter2.massageWorkCount >= CHAPTER2.massageWorkCountForArrest) {
+    showMasseurArrestEvent();
+    return true;
+  }
+  return false;
+}
+
+function showMasseurArrestEvent() {
+  hideOverlay();
+  showOverlay(`<div class="dialog"><p>ある日、整体院に警察が踏み込んできた。
+「この整体師、無資格営業と悪質な高額商法の疑いです！」
+世話になっていた整体師は、そのまま連行されていった。
+突然の出来事に、田辺はパニックになって走り出した――。</p>
+    <div class="choices"><button id="arrestOk">逃げる！</button></div></div>`);
+  document.getElementById("arrestOk").onclick = () => {
+    STATE.chapter2.masseurArrested = true;
+    saveGame(STATE);
+    hideOverlay();
+    enterPoliceDungeon();
+  };
+}
+
+function enterPoliceDungeon() {
+  if (CH2TIMER) CH2TIMER.pause();
+  playBGM("bgm_dungeon");
+  STATE.position = { map: "policeDungeon", x: 4, y: 14 };
+  saveGame(STATE);
+  enterField();
+}
+
+function onPoliceEscape() {
+  FIELD.disable();
+  STATE.chapter2.policeDungeonCleared = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}<p><b>タナベッカムは逃げ切った！</b></p><div class="choices"><button id="escapeOk">……</button></div></div>`);
+  document.getElementById("escapeOk").onclick = () => { hideOverlay(); showSpainOfferEvent(); };
+}
+
+function showSpainOfferEvent() {
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>田辺は一人になった。
+サッカーでも居場所はなく、頼っていた整体師も逮捕され、どん底の状態だった。
+
+そこへ一本の電話が鳴る。
+「もしもし……こちら、スペイン2部リーグのクラブです。」</p>
+    <div class="choices"><button id="spainOk">……</button></div></div>`);
+  document.getElementById("spainOk").onclick = () => {
+    STATE.chapter2.cleared = true;
+    saveGame(STATE);
+    showChapter2ClearedTitle();
+  };
+}
+
+function showChapter2ClearedTitle() {
+  playBGM("bgm_title");
+  const c2 = STATE.chapter2;
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_back.png")}
+    <p><b>タナベッカムの不遇</b>
+第2章 Ver.0.1
+
+CHAPTER 2 CLEAR「天罰、ベンチ、そしてスペインへ」
+第3章「スペイン編」へ続く……</p>
+    <div class="choices"><button id="ch2ClearReview">記録を見る</button><button id="ch2NewGame">最初から遊ぶ</button></div></div>`);
+  document.getElementById("ch2ClearReview").onclick = () => {
+    showChoices(`第2章記録\n試合数:${c2.matchCount} 昇格:${c2.promoted ? "○" : "×"}\n称号:${STATE.player.titles.join("、") || "なし"}\n呪いレベル:${c2.curseLevel} お祓い回数:${c2.exorcismCount}\nサイドバック経験値:${c2.sideBackExperience} 整体バイト回数:${c2.massageWorkCount}`,
+      [{ label: "戻る", onClick: showChapter2ClearedTitle }]);
+  };
+  document.getElementById("ch2NewGame").onclick = () => {
+    showChoices("セーブを消して最初から遊びますか？", [
+      { label: "はい（消して最初から）", onClick: () => { deleteSave(); STATE = null; location.reload(); } },
+      { label: "やめる", onClick: showChapter2ClearedTitle },
+    ]);
+  };
 }
 
 // アップエリア：田辺はベンチ横で軽い行動のみ可能。managerAppealを貯めて途中出場を狙う。
@@ -639,6 +716,7 @@ function enterField() {
     onEnterPractice: () => enterPracticeMenu(),
     onChest: (id) => onChest(id),
     onAltar: (id) => onAltar(id),
+    onPoliceEscape: () => onPoliceEscape(),
   });
   FIELD.enable();
   FIELD.render();

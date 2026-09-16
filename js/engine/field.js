@@ -79,6 +79,16 @@ const MAPS = {
     altar: { x: 4, y: 8, id: "exorcism_altar", label: "お祓い" },
     encounter: null,
   },
+  // 第2章：警察逃走ダンジョン。通常のダンジョンとして実装し、出口到達で
+  // 逃走成功イベント（onPoliceEscape）に直接つながる特殊出口を使う。
+  policeDungeon: {
+    name: "警察包囲網",
+    bg: "assets/maps/police_dungeon.png?v=1",
+    bgm: "bgm_dungeon",
+    w: 9, h: 16,
+    exits: [{ x: 4, y: 1, to: "__police_escape__", label: "出口" }],
+    encounter: { table: "police", rate: CHAPTER2.policeDungeonEncounterRate },
+  },
 };
 
 // 元の1マスを縦横2分割＝4倍の細かさのマス目にして、そのマス単位で移動する。
@@ -229,6 +239,10 @@ class FieldController {
   onEnterTile(nx, ny, map) {
     const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny && (!ex.requires || ex.requires(this.state)));
     if (exit) {
+      if (exit.to === "__police_escape__") {
+        if (this.cb.onPoliceEscape) this.cb.onPoliceEscape();
+        return;
+      }
       this.state.position.map = exit.to;
       this.state.position.x = exit.tx;
       this.state.position.y = exit.ty;

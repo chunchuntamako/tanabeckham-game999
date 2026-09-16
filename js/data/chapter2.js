@@ -92,6 +92,9 @@ const CHAPTER2 = {
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
 
+  // 整体師アルバイトを何回こなすと悪徳整体師が逮捕されるか
+  massageWorkCountForArrest: 5,
+
   // 第2章で新設する隠し称号
   titles: {
     god: "バロンドールタナベ",
