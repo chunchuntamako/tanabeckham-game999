@@ -168,15 +168,48 @@ function resumeChapter2() {
 function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
   FIELD && FIELD.disable();
-  showChoices("そろそろ公式戦の時間だ。\n（試合本体は次のフェーズで実装予定です）", [
-    { label: "OK", onClick: () => {
-        STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
-        saveGame(STATE);
-        hideOverlay();
-        FIELD && FIELD.enable();
-        if (CH2TIMER) CH2TIMER.resume();
-      } },
+  showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
+    { label: "試合に出る", onClick: startChapter2Match },
   ]);
+}
+
+// 序盤数試合は不遇補正なし（企画仕様どおり）。SoccerMatchをそのまま流用する。
+function startChapter2Match() {
+  hideOverlay();
+  playBGM("bgm_match");
+  canvas.style.display = "block";
+  document.getElementById("soccerControls").style.display = "flex";
+  const skillBtn = document.getElementById("btn-skill");
+  skillBtn.style.display = STATE.player.learnedSkills.includes(CHAPTER0.skillOjiisanGoroshi.id) ? "inline-block" : "none";
+  const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, (evalResult) => {
+    document.getElementById("soccerControls").style.display = "none";
+    document.getElementById("btn-skill").style.display = "none";
+    MATCH = null;
+    finishChapter2Match(evalResult);
+  });
+  MATCH = match;
+  match.enable();
+}
+
+function finishChapter2Match(evalResult) {
+  STATE.chapter2.matchCount += 1;
+  // minimumMatchesを満たしたイベントは、ここでは「解放」だけ行う（実際の発生は該当フェーズで実装）
+  if (STATE.chapter2.matchCount >= CHAPTER2.minMatchesShrine) STATE.chapter2.shrineUnlocked = true;
+  STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
+  STATE.matchRecords["ch2_" + STATE.chapter2.matchCount] = evalResult;
+  const result = evalResult.goals > evalResult.conceded ? "win" : evalResult.goals < evalResult.conceded ? "lose" : "draw";
+  saveGame(STATE);
+  const resultText = result === "win" ? "勝利！" : result === "lose" ? "敗北……" : "引き分け";
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
+    <p><b>${resultText}</b>
+田辺 ${evalResult.goals} - ${evalResult.conceded} 相手
+第${STATE.chapter2.matchCount}戦 終了</p>
+    <div class="choices"><button id="ch2MatchOk">OK</button></div></div>`);
+  document.getElementById("ch2MatchOk").onclick = () => {
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
 }
 
 // 画像タグ生成（無ければ自動で非表示になるので、既存のcolored-boxフォールバックと併用可）

@@ -7,6 +7,7 @@ const CHAPTER2 = {
 
   matchIntervalSec: 10 * 60, // 次回公式戦までの実プレイ秒数
   minMatchesShrine: 2,       // 昇格祈願クエスト解放に必要な最低試合数
+  matchDurationSec: 90,      // 公式戦1試合の実プレイ秒数
 
   matchPayment: 50,          // 出場給（実際に出場した試合のみ）
 
