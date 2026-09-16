@@ -6,7 +6,6 @@ const CHAPTER2 = {
   chapterId: 2,
 
   matchIntervalSec: 5 * 60,  // 次回公式戦までの実プレイ秒数
-  minMatchesShrine: 2,       // 昇格祈願クエスト解放に必要な最低試合数
   matchDurationSec: 90,      // 公式戦1試合の実プレイ秒数
 
   matchPayment: 50,          // 出場給（実際に出場した試合のみ）
@@ -106,6 +105,8 @@ const CHAPTER2 = {
     started: false,
     matchCount: 0,
     nextMatchTimerSec: 5 * 60,
+    objective: "首位決戦に備えろ！", // 画面上部に常時表示する目的テキスト
+    momErrandShown: false,    // 母のお使いイベント（お守り購入＋お参り）を見たか
     promoted: false,          // J昇格達成
     j1Mode: false,            // true の間、J1難易度補正が試合に常時かかる
     matchCountAtJ1Start: 0,   // J1開始時点のmatchCount（お祓い誘発までの試合数カウント用）

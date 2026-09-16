@@ -137,6 +137,15 @@ function hudLoop() {
       `<img class="hud-icon" src="assets/ui/icon_stamina.png">${Math.ceil(STATE.player.stamina)}/${STATE.player.maxStamina}` +
       ` G:${STATE.player.gold} <img class="hud-icon" src="assets/ui/icon_luck.png">${STATE.player.luck}` +
       ` | ${timePart}${misfortunePart}${poopPart}`;
+    const objEl = document.getElementById("ch2Objective");
+    if (objEl) {
+      if (inCh2 && STATE.chapter2.objective) {
+        objEl.textContent = "目標：" + STATE.chapter2.objective;
+        objEl.style.display = (MATCH || IN_BATTLE) ? "none" : "block";
+      } else {
+        objEl.style.display = "none";
+      }
+    }
   }
   requestAnimationFrame(hudLoop);
 }
@@ -180,8 +189,8 @@ function startChapter2() {
   saveGame(STATE);
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p>入団から数週間。田辺はFC山陽TIGAKUの練習に加わる日々を送っていた。
-ヒロシ君：「今日の試合、勝てば単独首位だ。優勝がぐっと近づく。
-まずは町や練習場を見て回って、調子を整えてくれ。」</p>
+ヒロシ君：「今、うちは2位だ。今日の試合に勝てば、単独首位に立てる。」
+ヒロシ君：「首位決戦のつもりで臨んでくれ。まずは町や練習場を見て回って、調子を整えてくれ。」</p>
     <div class="choices"><button id="ch2Go">歩き出す</button></div></div>`);
   document.getElementById("ch2Go").onclick = () => { hideOverlay(); resumeChapter2(); };
 }
@@ -198,14 +207,6 @@ function onChapter2MatchDue() {
   // ベンチ入り中は、まずアップエリアで監督にアピールしてから試合に入る
   if (STATE.chapter2.benchMode && STATE.chapter2.managerAppeal < CHAPTER2.managerAppealThreshold) {
     enterWarmupMenu();
-  } else if (STATE.chapter2.matchCount === 1) {
-    // 2戦目の前だけ、勝敗にかかわらず母からの一言を挟む
-    showChoices(`母：「昨日は大活躍だったわね、すごいじゃない！」
-母：「今日も頑張ってね。」
-
-公式戦の時間だ。第2戦。`, [
-      { label: "試合に出る", onClick: startChapter2Match },
-    ]);
   } else {
     showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
       { label: "試合に出る", onClick: startChapter2Match },
@@ -235,8 +236,6 @@ function startChapter2Match() {
 
 function finishChapter2Match(evalResult) {
   STATE.chapter2.matchCount += 1;
-  // minimumMatchesを満たしたイベントは、ここでは「解放」だけ行う（実際の発生は該当フェーズで実装）
-  if (STATE.chapter2.matchCount >= CHAPTER2.minMatchesShrine) STATE.chapter2.shrineUnlocked = true;
   STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
   STATE.matchRecords["ch2_" + STATE.chapter2.matchCount] = evalResult;
   const result = evalResult.goals > evalResult.conceded ? "win" : evalResult.goals < evalResult.conceded ? "lose" : "draw";
@@ -274,6 +273,24 @@ function finishChapter2Match(evalResult) {
     if (checkPromotionTrigger()) return;
     if (checkCurseSuspicionTrigger()) return;
     if (checkJ1BenchTrigger()) return;
+    if (STATE.chapter2.matchCount === 1 && !STATE.chapter2.momErrandShown) { showMomErrandEvent(); return; }
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// 1試合目終了後、勝敗に関わらず母からの一言＋お使い（お守り購入＋お参り）イベント。
+// ここで神社の入口を解放する（以前の「試合数で自動解放」は廃止し、ストーリー駆動にする）。
+function showMomErrandEvent() {
+  STATE.chapter2.momErrandShown = true;
+  STATE.chapter2.shrineUnlocked = true;
+  STATE.chapter2.objective = "神社でお守りを買おう";
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>母：「昨日は大活躍だったわね、すごいじゃない！」
+母：「今日も頑張ってね。それと、交通安全のお守りを買ってきてくれない？神社でお参りもしてきてね。」</p>
+    <div class="choices"><button id="momErrandOk">わかった</button></div></div>`);
+  document.getElementById("momErrandOk").onclick = () => {
+    hideOverlay();
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };
@@ -607,7 +624,6 @@ function enterWarmupMenu() {
 function resolveBenchMatch() {
   hideOverlay();
   STATE.chapter2.matchCount += 1;
-  if (STATE.chapter2.matchCount >= CHAPTER2.minMatchesShrine) STATE.chapter2.shrineUnlocked = true;
   STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
   const win = Math.random() < CHAPTER2.benchWinRate;
   const draw = !win && Math.random() < 0.3;
@@ -681,6 +697,7 @@ function renderGodBattleEnd(result, battle) {
 
 function showHiroshiSonEvent() {
   STATE.chapter2.hiroshiSonSeen = true;
+  STATE.chapter2.objective = "次の公式戦に備えよう";
   saveGame(STATE);
   showOverlay(`<div class="dialog"><p>ひろし君の息子：「…………」
 

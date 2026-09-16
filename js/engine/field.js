@@ -23,7 +23,7 @@ const MAPS = {
       { x: 3, y: 6, to: "town", tx: 4, ty: 15, label: "町" },
       { x: 7, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
       { x: 6, y: 6, to: "practice", tx: 4, ty: 13, label: "練習場" },
-      // 第2章：公式戦をminMatchesShrine回こなすまでは入口自体が出ない
+      // 第2章：母のお使いイベント（1試合目終了後）で解放されるまで入口自体が出ない
       { x: 2, y: 2, to: "shrine", tx: 4, ty: 15, label: "神社",
         requires: (state) => !!(state.chapter2 && state.chapter2.shrineUnlocked) },
     ],
