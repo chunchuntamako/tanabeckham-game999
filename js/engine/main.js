@@ -393,12 +393,31 @@ function showHiguchiArrivalEvent() {
   };
 }
 
-// ---------- 第2章：昇格・ヒグチビッチ移籍・J1 ----------
-// ヒグチビッチ加入後、一定試合数をこなすとJ昇格→即アーセナル移籍の流れになる
+// ---------- 第2章：中盤ダンジョン接続点（仮）・昇格・ヒグチビッチ移籍・J1 ----------
+// 中盤の導線イベント（理由は未確定の仮テキスト）。ヒグチビッチ加入後の練習期間中に
+// ダンジョンで発生し、これを消化した後の次の試合終了でJ1昇格が決まる
+function onCh2Event(id) {
+  if (id !== "ch2_dungeon_detour") return;
+  FIELD.disable();
+  showOverlay(`<div class="dialog"><p>洞窟の奥で、何かが起きた。
+（――この先の展開は、まだ決まっていないようだ）</p>
+    <div class="choices"><button id="ch2EventOk">……</button></div></div>`);
+  document.getElementById("ch2EventOk").onclick = () => {
+    STATE.chapter2.dungeonEventDone = true;
+    STATE.chapter2.promotionReady = true;
+    STATE.chapter2.objective = "次の公式戦に備えよう";
+    saveGame(STATE);
+    hideOverlay();
+    FIELD.enable();
+    FIELD.render();
+  };
+}
+
+// ヒグチビッチ加入後、中盤ダンジョンの導線イベントを消化した次の試合でJ1昇格が決まる
+// （固定試合数のグラインドではなく、ストーリー進行がトリガーになる）
 function checkPromotionTrigger() {
   const c2 = STATE.chapter2;
-  if (c2.higuchibitchJoined && !c2.promoted &&
-      (c2.matchCount - c2.matchCountAtHiguchiJoin) >= CHAPTER2.matchesForPromotion) {
+  if (c2.higuchibitchJoined && !c2.promoted && c2.promotionReady) {
     showPromotionEvent();
     return true;
   }
@@ -907,6 +926,7 @@ function enterField() {
     onAltar: (id) => onAltar(id),
     onCharmShop: (id) => onCharmShop(id),
     onMainHall: (id) => onMainHall(id),
+    onCh2Event: (id) => onCh2Event(id),
     onPoliceEscape: () => onPoliceEscape(),
   });
   FIELD.enable();

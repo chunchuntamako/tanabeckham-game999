@@ -60,8 +60,6 @@ const CHAPTER2 = {
   // 途中出場後、ヒグチビッチから田辺へパスが来にくい（意地悪ではなくAIの得点期待値判断）
   subInPassPenalty: 0.35,
 
-  // ヒグチビッチ加入後、何試合こなすとJ昇格するか
-  matchesForPromotion: 4,
 
   // J1編の難易度補正（天罰とは別枠、呪いが解けても常時有効）。勝利不能にはしない。
   j1Modifier: {
@@ -135,6 +133,8 @@ const CHAPTER2 = {
     matchCountAtHiguchiJoin: 0,    // ヒグチビッチ加入時点のmatchCount（昇格までの試合数カウント用）
     higuchiDebutDone: false,       // ヒグチビッチ加入後の初戦（完全ベンチ確定）を消化したか
     higuchiDebutMomShown: false,   // 初戦後の母イベント（練習して出場のチャンスをつかもう）を見たか
+    dungeonEventDone: false,       // 中盤ダンジョンの仮イベントを消化したか
+    promotionReady: false,         // trueになった次の試合終了でJ1昇格イベントが発生する
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,
