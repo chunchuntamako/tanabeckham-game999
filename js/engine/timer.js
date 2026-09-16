@@ -49,3 +49,43 @@ class GameTimer {
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   }
 }
+
+// ===== 第2章：次の公式戦までのタイマー =====
+// 序章のGameTimerとは別物。残り時間を減らすのではなく、自由行動中に
+// 実際にプレイした秒数をカウントし、CHAPTER2.matchIntervalSecに達したら
+// onMatchDueを呼ぶ（試合中や会話中はmain.js側でpause/resumeする想定）。
+class Chapter2Timer {
+  constructor(state, onMatchDue) {
+    this.state = state;
+    this.onMatchDue = onMatchDue;
+    this.intervalId = null;
+    this.active = false;
+  }
+
+  start() {
+    if (this.intervalId) return;
+    this.active = true;
+    this.intervalId = setInterval(() => {
+      if (!this.active) return;
+      const c2 = this.state.chapter2;
+      if (!c2 || !c2.started || c2.cleared) return;
+      if (c2.nextMatchTimerSec > 0) {
+        c2.nextMatchTimerSec -= 1;
+        if (c2.nextMatchTimerSec <= 0) {
+          c2.nextMatchTimerSec = 0;
+          this.onMatchDue();
+        }
+      }
+    }, 1000);
+  }
+
+  pause() { this.active = false; }
+  resume() { this.active = true; }
+
+  formatTime() {
+    const s = this.state.chapter2 ? Math.max(0, this.state.chapter2.nextMatchTimerSec) : 0;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+}

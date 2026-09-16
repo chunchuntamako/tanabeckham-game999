@@ -3,6 +3,7 @@
 
 let STATE = null;
 let TIMER = null;
+let CH2TIMER = null;
 let FIELD = null;
 let MATCH = null;
 let IN_BATTLE = false;
@@ -101,11 +102,15 @@ function startNewGame() {
 
 function hudLoop() {
   if (STATE) {
+    const inCh2 = STATE.chapter2 && STATE.chapter2.started && !STATE.chapter2.cleared;
+    const timePart = inCh2
+      ? `次の公式戦まで ${CH2TIMER ? CH2TIMER.formatTime() : "--:--"}`
+      : `${STATE.day}日目 ${TIMER ? TIMER.formatTime() : "--:--"}`;
     hud.innerHTML = `<b>Lv${STATE.player.level}</b>` +
       `<img class="hud-icon" src="assets/ui/icon_hp.png">${STATE.player.hp}/${STATE.player.maxHp}` +
       `<img class="hud-icon" src="assets/ui/icon_stamina.png">${Math.ceil(STATE.player.stamina)}/${STATE.player.maxStamina}` +
       ` G:${STATE.player.gold} <img class="hud-icon" src="assets/ui/icon_luck.png">${STATE.player.luck}` +
-      ` | ${STATE.day}日目 ${TIMER ? TIMER.formatTime() : "--:--"}`;
+      ` | ${timePart}`;
   }
   requestAnimationFrame(hudLoop);
 }
@@ -118,7 +123,11 @@ function showClearedTitle() {
 
 PROLOGUE CLEAR「名前だけで、Jへ」
 クリアデータは保存されています。</p>
-    <div class="choices"><button id="clearReview">クリア記録を見る</button><button id="newGame">最初から遊ぶ</button></div></div>`);
+    <div class="choices"><button id="ch2Start">第2章へ進む</button><button id="clearReview">クリア記録を見る</button><button id="newGame">最初から遊ぶ</button></div></div>`);
+  document.getElementById("ch2Start").onclick = () => {
+    if (STATE.chapter2 && STATE.chapter2.started) resumeChapter2();
+    else startChapter2();
+  };
   document.getElementById("clearReview").onclick = () => {
     const r = STATE.matchRecords.tryout || {};
     showChoices(`入団テスト記録\n得点:${r.goals||0} パス:${r.pass||0} シュート:${r.shoot||0}\n走行距離:${r.distance||0}\n必殺技:${r.special||0}回`, [{label:"戻る",onClick:showClearedTitle}]);
@@ -133,6 +142,41 @@ PROLOGUE CLEAR「名前だけで、Jへ」
       { label: "やめる", onClick: showClearedTitle },
     ]);
   };
+}
+
+// ---------- 第2章：開始〜自由行動 ----------
+// 詳しい仕様は docs/chapter2_spec.md を参照。フェーズ1では土台のみ：
+// 町・洞窟・練習場など既存マップを流用した自由行動と、公式戦までの
+// カウントアップタイマーを用意する（試合本体は次フェーズ以降で実装）。
+function startChapter2() {
+  hideOverlay();
+  STATE.chapter2.started = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
+    <p>入団から数週間。田辺はFC山陽TIGAKUの練習に加わる日々を送っていた。
+ヒロシ君：「公式戦は、動き回っているうちに近づいてくる。まずは町や練習場を見て回ってくれ。」</p>
+    <div class="choices"><button id="ch2Go">歩き出す</button></div></div>`);
+  document.getElementById("ch2Go").onclick = () => { hideOverlay(); resumeChapter2(); };
+}
+
+function resumeChapter2() {
+  enterField();
+  if (!CH2TIMER) { CH2TIMER = new Chapter2Timer(STATE, onChapter2MatchDue); CH2TIMER.start(); }
+  else CH2TIMER.resume();
+}
+
+function onChapter2MatchDue() {
+  if (CH2TIMER) CH2TIMER.pause();
+  FIELD && FIELD.disable();
+  showChoices("そろそろ公式戦の時間だ。\n（試合本体は次のフェーズで実装予定です）", [
+    { label: "OK", onClick: () => {
+        STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
+        saveGame(STATE);
+        hideOverlay();
+        FIELD && FIELD.enable();
+        if (CH2TIMER) CH2TIMER.resume();
+      } },
+  ]);
 }
 
 // 画像タグ生成（無ければ自動で非表示になるので、既存のcolored-boxフォールバックと併用可）
