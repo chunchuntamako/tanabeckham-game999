@@ -19,6 +19,7 @@ class SoccerMatch {
     this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false, passReq:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
+    if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
   }
   enable() { document.addEventListener("keydown", this.keyDown); document.addEventListener("keyup", this.keyUp); this.interval = setInterval(() => this.tick(), 1000/30); }
   disable() { document.removeEventListener("keydown", this.keyDown); document.removeEventListener("keyup", this.keyUp); clearInterval(this.interval); }
@@ -65,9 +66,13 @@ class SoccerMatch {
   tick() {
     this.elapsed += 1/30;
     if (this.elapsed >= this.duration) { this.finish(); return; }
-    if (this.pressed("z","skill")) this.trySpecial();
-    if (this.pressed("c","tackle")) this.tryTackle();
-    if (this.pressed("r","passReq")) this.requestPass();
+    // 完全金縛り試合：田辺の移動・パス・シュート・ドリブル・守備・パス要求を全て無効化する
+    const paralyzed = !!(this.state.chapter2 && this.state.chapter2.paralyzedMatch);
+    if (!paralyzed) {
+      if (this.pressed("z","skill")) this.trySpecial();
+      if (this.pressed("c","tackle")) this.tryTackle();
+      if (this.pressed("r","passReq")) this.requestPass();
+    }
 
     // 第2章・天罰の不遇ルート中は、各所の判定にMISFORTUNE_MODIFIERを反映する
     const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
@@ -80,15 +85,17 @@ class SoccerMatch {
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
-    if(this.keys["ArrowLeft"])dx--; if(this.keys["ArrowRight"])dx++;
-    if(this.keys["ArrowUp"])dy--; if(this.keys["ArrowDown"])dy++;
+    if (!paralyzed) {
+      if(this.keys["ArrowLeft"])dx--; if(this.keys["ArrowRight"])dx++;
+      if(this.keys["ArrowUp"])dy--; if(this.keys["ArrowDown"])dy++;
+    }
     // 走り込み練習は基礎速度、ドリブル練習はボール保持中の速度に効く
     const runBonus=1+sk.run*.02;
     const dribbleBonus=(this.ball.owner===this.tanabe)?1+sk.dribble*.03:1;
     const spd=this.tanabe.speed*runBonus*dribbleBonus;
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
-    if(!this.ball.owner&&!this.pendingGoal&&this.elapsed>=this.tanabeNoPickupUntil&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
+    if(!paralyzed&&!this.ball.owner&&!this.pendingGoal&&this.elapsed>=this.tanabeNoPickupUntil&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
     if(this.ball.owner===this.tanabe){
       this.ball.x=this.tanabe.x;this.ball.y=this.tanabe.y-13;
       if(this.pressed(" ","shoot")){
@@ -224,7 +231,15 @@ class SoccerMatch {
     if(concedeTeam==="cpu"){const en=this.enemies[0];en.x=this.W/2-10;en.y=this.H/2+18;this.ball.owner=en;}
     else if(concedeTeam==="player"){this.tanabe.x=this.W/2;this.tanabe.y=this.H/2+18;this.ball.owner=this.tanabe;}
   }
-  finish(){this.disable();saveGame(this.state);this.onEnd({distance:Math.round(this.stats.distance),sprintSec:Math.round(this.stats.sprints),lateActiveSec:Math.round(this.stats.lateActive),pass:this.stats.pass,shoot:this.stats.shoot,defense:this.stats.defense,special:this.stats.special,goals:this.score.player,conceded:this.score.cpu,passed:true});}
+  finish(){
+    this.disable();
+    // 完全金縛り試合は、味方だけで勝ち越してしまった場合でも確定敗北にする
+    if (this.state.chapter2 && this.state.chapter2.paralyzedMatch && this.score.player >= this.score.cpu) {
+      this.score.cpu = this.score.player + 1;
+    }
+    saveGame(this.state);
+    this.onEnd({distance:Math.round(this.stats.distance),sprintSec:Math.round(this.stats.sprints),lateActiveSec:Math.round(this.stats.lateActive),pass:this.stats.pass,shoot:this.stats.shoot,defense:this.stats.defense,special:this.stats.special,goals:this.score.player,conceded:this.score.cpu,passed:true});
+  }
 
   render(){
     const c=this.ctx; c.clearRect(0,0,this.W,this.H);

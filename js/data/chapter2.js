@@ -43,8 +43,9 @@ const CHAPTER2 = {
   // 途中出場のためのアップエリア行動でmanagerAppealを増やす基準値
   managerAppealThreshold: 100,
 
-  // 天罰下で何試合終えたら監督更迭イベントが起きるか
-  matchesBeforeDismissal: 3,
+  // 天罰下で何敗したら即座に監督更迭イベントが起きるか（固定値。天罰下の試合は
+  // 金縛り試合・ダイジェスト試合ともに必ず敗北するため、実質「5連敗」の固定トリガー）
+  matchesBeforeDismissal: 5,
 
   // ベンチ試合（ヒグチビッチ主体、田辺は観戦のみ）のTIGAKU勝率
   benchWinRate: 0.72,
@@ -123,6 +124,7 @@ const CHAPTER2 = {
     hiroshiSonSeen: false,
     divinePunishment: false,
     misfortuneMode: false,
+    paralyzedMatch: false,    // 天罰直後の1試合だけtrue。田辺の操作を全て無効化する
 
     // --- 監督更迭・ヒグチビッチ ---
     hiroshiDismissed: false,

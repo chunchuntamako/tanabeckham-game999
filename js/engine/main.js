@@ -204,11 +204,26 @@ function resumeChapter2() {
 function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
   FIELD && FIELD.disable();
+  const c2 = STATE.chapter2;
   // ベンチ入り中は、まずアップエリアで監督にアピールしてから試合に入る
-  if (STATE.chapter2.benchMode && STATE.chapter2.managerAppeal < CHAPTER2.managerAppealThreshold) {
+  if (c2.benchMode && c2.managerAppeal < CHAPTER2.managerAppealThreshold) {
     enterWarmupMenu();
+    return;
+  }
+  // 天罰下（misfortuneMode）の何試合目かで、通常試合／金縛り試合／ダイジェストを切り替える
+  const curseMatchesSoFar = (c2.misfortuneMode && !c2.hiroshiDismissed) ? (c2.matchCount - c2.matchCountAtPunishment) : -1;
+  if (curseMatchesSoFar === 0) {
+    // 天罰直後、最初の1試合だけは完全に身体が動かない（確定敗北）
+    showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
+      { label: "試合に出る", onClick: startParalyzedMatch },
+    ]);
+  } else if (curseMatchesSoFar >= 1) {
+    // 2〜5試合目はダイジェストで一気に見せる（いずれも敗北）
+    showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
+      { label: "試合に出る", onClick: showDigestMatch },
+    ]);
   } else {
-    showChoices(`公式戦の時間だ。第${STATE.chapter2.matchCount + 1}戦。`, [
+    showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
       { label: "試合に出る", onClick: startChapter2Match },
     ]);
   }
@@ -232,6 +247,35 @@ function startChapter2Match() {
   });
   MATCH = match;
   match.enable();
+}
+
+// 天罰直後の1試合限定：完全に身体が動かない金縛り状態。操作は一切効かず確定敗北になる
+function startParalyzedMatch() {
+  hideOverlay();
+  playBGM("bgm_match");
+  canvas.style.display = "block";
+  document.getElementById("soccerControls").style.display = "flex";
+  document.getElementById("btn-skill").style.display = "none";
+  STATE.chapter2.paralyzedMatch = true;
+  const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, (evalResult) => {
+    document.getElementById("soccerControls").style.display = "none";
+    MATCH = null;
+    STATE.chapter2.paralyzedMatch = false;
+    finishChapter2Match(evalResult);
+  });
+  MATCH = match;
+  match.enable();
+}
+
+// 2〜5試合目相当：実際のミニゲームは起動せず、短いテキストとスコアだけで見せる
+// ダイジェスト。天罰下のため必ず敗北扱いになる
+function showDigestMatch() {
+  hideOverlay();
+  const conceded = 1 + Math.floor(Math.random() * 3);
+  finishChapter2Match({
+    goals: 0, conceded, pass: 0, shoot: 0, defense: 0, distance: 0,
+    flavor: "この試合も、身体が思うように動かないまま終わった。",
+  });
 }
 
 function finishChapter2Match(evalResult) {
@@ -259,11 +303,12 @@ function finishChapter2Match(evalResult) {
 
   saveGame(STATE);
   const resultText = result === "win" ? "勝利！" : result === "lose" ? "敗北……" : "引き分け";
-  const managerNote = evalResult.defense === 0 ? "\n\n監督：「守備もちゃんとやれ」" : "";
+  const managerNote = (!evalResult.flavor && evalResult.defense === 0) ? "\n\n監督：「守備もちゃんとやれ」" : "";
+  const flavorNote = evalResult.flavor ? "\n" + evalResult.flavor : "";
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p><b>${resultText}</b>
 田辺 ${evalResult.goals} - ${evalResult.conceded} 相手
-第${STATE.chapter2.matchCount}戦 終了${paymentNote}${sideBackNote}${managerNote}</p>
+第${STATE.chapter2.matchCount}戦 終了${paymentNote}${sideBackNote}${flavorNote}${managerNote}</p>
     <div class="choices"><button id="ch2MatchOk">OK</button></div></div>`);
   document.getElementById("ch2MatchOk").onclick = () => {
     hideOverlay();
