@@ -207,13 +207,31 @@ function finishChapter2Match(evalResult) {
   STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
   STATE.matchRecords["ch2_" + STATE.chapter2.matchCount] = evalResult;
   const result = evalResult.goals > evalResult.conceded ? "win" : evalResult.goals < evalResult.conceded ? "lose" : "draw";
+
+  // 第2章後半（J1）から出場給を導入。実際に出場した試合（このfinishChapter2Match自体）のみ加算。
+  let paymentNote = "";
+  if (STATE.chapter2.j1Mode) {
+    STATE.player.gold += CHAPTER2.matchPayment;
+    paymentNote = `\n出場給+${CHAPTER2.matchPayment}G`;
+  }
+
+  // サイドバックで出場した試合は、育成状況を反映した活躍度をsideBackExperienceに加算する
+  let sideBackNote = "";
+  if (STATE.chapter2.sideBackAccepted) {
+    const sk = STATE.player.soccerSkills;
+    const gain = Math.max(1, Math.round((evalResult.distance || 0) / 80 + evalResult.pass + evalResult.defense * 2 + sk.run * 0.3 + sk.defense * 0.3 + sk.dribble * 0.2));
+    STATE.chapter2.sideBackExperience += gain;
+    sideBackNote = `\nサイドバック経験値+${gain}`;
+    STATE.chapter2.sideBackAccepted = false;
+  }
+
   saveGame(STATE);
   const resultText = result === "win" ? "勝利！" : result === "lose" ? "敗北……" : "引き分け";
   const managerNote = evalResult.defense === 0 ? "\n\n監督：「守備もちゃんとやれ」" : "";
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
     <p><b>${resultText}</b>
 田辺 ${evalResult.goals} - ${evalResult.conceded} 相手
-第${STATE.chapter2.matchCount}戦 終了${managerNote}</p>
+第${STATE.chapter2.matchCount}戦 終了${paymentNote}${sideBackNote}${managerNote}</p>
     <div class="choices"><button id="ch2MatchOk">OK</button></div></div>`);
   document.getElementById("ch2MatchOk").onclick = () => {
     hideOverlay();
@@ -222,6 +240,7 @@ function finishChapter2Match(evalResult) {
     if (dismiss) { showManagerDismissalEvent(); return; }
     if (checkPromotionTrigger()) return;
     if (checkCurseSuspicionTrigger()) return;
+    if (checkJ1BenchTrigger()) return;
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
   };
@@ -371,6 +390,82 @@ function performExorcism() {
   };
 }
 
+// ---------- 第2章：サイドバック・出場機会減少 ----------
+function checkJ1BenchTrigger() {
+  const c2 = STATE.chapter2;
+  if (c2.j1Mode && !c2.benchMode &&
+      (c2.matchCount - c2.matchCountAtJ1Start) >= CHAPTER2.matchesBeforeJ1Bench) {
+    showJ1BenchEvent();
+    return true;
+  }
+  return false;
+}
+
+function showJ1BenchEvent() {
+  showOverlay(`<div class="dialog"><p>J1のレベルについていけず、田辺の出場機会は徐々に減っていった。
+「プロなのに、試合に出られない」――そんな現実が田辺を待っていた。
+出場給が減り、生活は苦しくなっていく。</p>
+    <div class="choices"><button id="j1BenchOk">……</button></div></div>`);
+  document.getElementById("j1BenchOk").onclick = () => {
+    STATE.chapter2.benchMode = true;
+    STATE.chapter2.managerAppeal = 0;
+    STATE.chapter2.massageJobUnlocked = true;
+    saveGame(STATE);
+    hideOverlay();
+    FIELD && FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// 途中出場のチャンスが来た時の入り口。ヒグチビッチ移籍後（サイドバック編）は
+// 出場ポジションの選択を挟む。
+function offerSubInEntry() {
+  if (STATE.chapter2.higuchibitchTransferred) {
+    STATE.chapter2.sideBackOffered = true;
+    showChoices('監督：「今日はサイドバックでもしておけ。」', [
+      { label: "サイドバックで出る", onClick: () => { STATE.chapter2.sideBackAccepted = true; startChapter2Match(); } },
+      { label: "俺はトップ下です", onClick: () => { STATE.chapter2.sideBackAccepted = false; startChapter2Match(); } },
+    ]);
+  } else {
+    showChoices("アピールが監督に届いた！\n今日は途中出場のチャンスだ。", [{ label: "試合へ", onClick: startChapter2Match }]);
+  }
+}
+
+// ---------- 第2章：整体師アルバイト ----------
+function enterMassageJob() {
+  const job = CHAPTER2.massageJob;
+  const patient = job.patients[Math.floor(Math.random() * job.patients.length)];
+  const spotKeys = Object.keys(job.spots);
+  const hint = STATE.player.seitaiPoint >= job.hintThreshold;
+  let html = `<div class="dialog"><p>${patient.symptom}
+施術箇所を選んでください。${hint ? "（身体ケアの経験から、なんとなく見当がつく……）" : ""}</p><ul>`;
+  spotKeys.forEach((k, i) => { html += `<li><button data-i="${i}">${job.spots[k]}</button></li>`; });
+  html += `</ul><button id="closeMassage">やめる</button></div>`;
+  showOverlay(html);
+  spotKeys.forEach((k, i) => {
+    overlay.querySelector(`[data-i="${i}"]`).onclick = () => resolveMassage(k === patient.correct);
+  });
+  overlay.querySelector("#closeMassage").onclick = backToField;
+}
+
+function resolveMassage(correct) {
+  const job = CHAPTER2.massageJob;
+  STATE.chapter2.massageWorkCount += 1;
+  let msg;
+  if (correct) {
+    STATE.player.gold += job.reward;
+    STATE.player.seitaiPoint += job.seitaiPointGain;
+    msg = `施術成功！ G+${job.reward}、身体ケアポイント+${job.seitaiPointGain}`;
+  } else {
+    msg = "施術は空振りだった……報酬はなし。";
+  }
+  saveGame(STATE);
+  showChoices(msg, [
+    { label: "もう一人施術する", onClick: enterMassageJob },
+    { label: "やめる", onClick: backToField },
+  ]);
+}
+
 // アップエリア：田辺はベンチ横で軽い行動のみ可能。managerAppealを貯めて途中出場を狙う。
 function enterWarmupMenu() {
   const actions = CHAPTER2.warmupActions;
@@ -389,7 +484,7 @@ function enterWarmupMenu() {
       }
       saveGame(STATE);
       if (STATE.chapter2.managerAppeal >= CHAPTER2.managerAppealThreshold) {
-        showChoices("アピールが監督に届いた！\n今日は途中出場のチャンスだ。", [{ label: "試合へ", onClick: startChapter2Match }]);
+        offerSubInEntry();
       } else {
         enterWarmupMenu();
       }
@@ -682,13 +777,16 @@ function mulberry32(a) {
 
 // ---------- 職業安定所 ----------
 function openJobCenter() {
+  const massageAvailable = STATE.chapter2 && STATE.chapter2.massageJobUnlocked;
   let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/jobcenter.png")}><p>職業安定所：求人を選んでください</p><ul>`;
   CHAPTER0.jobs.forEach((j, i) => { html += `<li><button data-i="${i}">${j.name}</button></li>`; });
+  if (massageAvailable) html += `<li><button id="jobMassage">整体師のアルバイト</button></li>`;
   html += `</ul><button id="closeJob">出る</button></div>`;
   showOverlay(html);
   CHAPTER0.jobs.forEach((j, i) => {
     overlay.querySelector(`[data-i="${i}"]`).onclick = () => applyJob(j);
   });
+  if (massageAvailable) document.getElementById("jobMassage").onclick = enterMassageJob;
   overlay.querySelector("#closeJob").onclick = backToField;
 }
 

@@ -72,6 +72,23 @@ const CHAPTER2 = {
   // J1で何試合苦戦したら「まだ呪われてるんじゃない？」の空気になるか
   matchesBeforeCurseSuspicion: 3,
 
+  // J1開始から何試合で出場機会が減りベンチに戻るか（サイドバック編の入口）
+  matchesBeforeJ1Bench: 6,
+
+  // 整体師アルバイトのミニゲーム設定
+  massageJob: {
+    reward: 40,          // 正解時のG
+    seitaiPointGain: 1,  // 正解時の身体ケアポイント増加
+    hintThreshold: 5,    // seitaiPointがこの値以上でヒントが出る
+    patients: [
+      { symptom: "お客さん：「右肩が痛いんじゃ……」", correct: "shoulder" },
+      { symptom: "お客さん：「腰が重だるくてのう」", correct: "waist" },
+      { symptom: "お客さん：「首がまったく回らん」", correct: "neck" },
+      { symptom: "お客さん：「膝に違和感があるんじゃ」", correct: "knee" },
+    ],
+    spots: { shoulder: "肩", waist: "腰", neck: "首", knee: "膝" },
+  },
+
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
 
