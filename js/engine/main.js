@@ -834,7 +834,9 @@ function openInn() {
 
 // ---------- 酒場（NPC抽選） ----------
 function openTavern() {
-  const seed = STATE.day; // 日ごとに固定の抽選
+  const inCh2 = STATE.chapter2 && STATE.chapter2.started;
+  // 第2章は日数が進まないため、公式戦の回数を日替わり相当のシードにする
+  const seed = inCh2 ? STATE.chapter2.matchCount : STATE.day;
   const rng = mulberry32(seed);
   let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/tavern.png")}><p>酒場のNPC（本日）</p><ul>`;
   const flavor = ["酔っぱらい", "旅人", "冒険者", "サッカー好き", "情報屋"];
