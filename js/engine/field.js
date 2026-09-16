@@ -66,7 +66,8 @@ const MAPS = {
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
     hiddenNpc: { x: 4, y: 1, id: "oldman_mat", label: "老人" },
   },
-  // 第2章：昇格祈願の神社。奥の賽銭箱を開けると「神」が出現する。
+  // 第2章：昇格祈願の神社。入口(下)から宝箱→お守り売り場→本殿(上)の順に並ぶ。
+  // 本殿で祈ると宝箱の有無に関係なく「神」が出現する（宝箱は任意のお賽銭窃盗イベント）。
   // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
   shrine: {
     name: "神社",
@@ -74,9 +75,11 @@ const MAPS = {
     bgm: "bgm_field",
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 2, label: "戻る" }],
-    chest: { x: 4, y: 2, id: "shrine_offering", label: "賽銭箱" },
+    chest: { x: 4, y: 12, id: "shrine_offering", label: "賽銭箱" },
+    charmShop: { x: 4, y: 8, id: "shrine_charm_shop", label: "お守り売り場" },
+    mainHall: { x: 4, y: 3, id: "shrine_main_hall", label: "本殿" },
     // 第2次神社クエスト「お祓い」。curseSuspicionRaisedになるまでは出現しない。
-    altar: { x: 4, y: 8, id: "exorcism_altar", label: "お祓い" },
+    altar: { x: 6, y: 8, id: "exorcism_altar", label: "お祓い" },
     encounter: null,
   },
   // 第2章：警察逃走ダンジョン。通常のダンジョンとして実装し、出口到達で
@@ -268,6 +271,14 @@ class FieldController {
       if (this.cb.onAltar) this.cb.onAltar(map.altar.id);
       return;
     }
+    if (map.charmShop && this.state.chapter2 && map.charmShop.x === nx && map.charmShop.y === ny) {
+      if (this.cb.onCharmShop) this.cb.onCharmShop(map.charmShop.id);
+      return;
+    }
+    if (map.mainHall && this.state.chapter2 && map.mainHall.x === nx && map.mainHall.y === ny) {
+      if (this.cb.onMainHall) this.cb.onMainHall(map.mainHall.id);
+      return;
+    }
     if (map.encounter) {
       // 第2章・天罰の不遇ルート中は敵の遭遇率が上がる
       const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
@@ -333,6 +344,8 @@ class FieldController {
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
     if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken) this.marker(map.chest.x, map.chest.y, tw, th, cameraY, map.chest.label || "宝箱", "rgba(230,200,60,.92)");
     if (map.altar && this.state.chapter2 && this.state.chapter2.curseSuspicionRaised) this.marker(map.altar.x, map.altar.y, tw, th, cameraY, map.altar.label || "お祓い", "rgba(150,80,200,.92)");
+    if (map.charmShop && this.state.chapter2) this.marker(map.charmShop.x, map.charmShop.y, tw, th, cameraY, map.charmShop.label || "お守り", "rgba(240,170,40,.90)");
+    if (map.mainHall && this.state.chapter2) this.marker(map.mainHall.x, map.mainHall.y, tw, th, cameraY, map.mainHall.label || "本殿", "rgba(210,55,45,.92)");
 
     // プレイヤー。顔がわかる大きさまで拡大し、足元基準で描画（複数マスにまたがってOK）。
     const playerImg = getImage("assets/characters/tanabe.png?v=2");

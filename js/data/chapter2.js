@@ -10,6 +10,7 @@ const CHAPTER2 = {
 
   matchPayment: 50,          // 出場給（実際に出場した試合のみ）
 
+  charmPrice: 30,            // 神社のお守り価格(G)
   exorcismCost: { money: 200, time: 60 }, // お祓いに必要なG・時間(秒)
   curseMax: 3,
   // お祓いの結果しきい値。(乱数0-100 + 運)がこの値以上で各結果になる。
@@ -116,6 +117,8 @@ const CHAPTER2 = {
     // --- 神社①・神・天罰 ---
     shrineUnlocked: false,
     offeringTaken: false,
+    trafficCharm: false,      // お守りを買ったか（母イベントの褒める/叱る分岐に使用）
+    shrinePrayed: false,      // 本殿で祈った（＝神戦発生済み）か。一度きりのイベント制御用
     godDefeated: false,
     hiroshiSonSeen: false,
     divinePunishment: false,

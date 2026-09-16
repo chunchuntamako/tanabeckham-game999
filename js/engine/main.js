@@ -646,20 +646,65 @@ TIGAKU ${scoreP} - ${scoreC} 相手
   };
 }
 
-// ---------- 第2章：神社①・賽銭・神戦・天罰 ----------
+// ---------- 第2章：神社①・賽銭・お守り・本殿・神戦・天罰 ----------
+// 宝箱（任意のお賽銭窃盗）と本殿での神戦は独立したイベント。
 // プレイヤーに選択肢は出さない（企画仕様どおり、盗む/盗まないの分岐は作らない）
 function onChest(id) {
   if (id !== "shrine_offering") return;
   FIELD.disable();
   if (CH2TIMER) CH2TIMER.pause();
   STATE.chapter2.offeringTaken = true;
+  STATE.chapter2.hiroshiSonSeen = true;
   saveGame(STATE);
   showOverlay(`<div class="dialog"><p>宝箱を開けた。
 お賽銭を手に入れた！
 
-（画面の端に、誰かがこちらをじっと見ている気配がした……）</p>
+（画面の端に、ひろし君の息子がこちらをじっと見ている気配がした……）</p>
     <div class="choices"><button id="chestOk">……</button></div></div>`);
-  document.getElementById("chestOk").onclick = () => { hideOverlay(); startGodBattle(); };
+  document.getElementById("chestOk").onclick = () => {
+    hideOverlay();
+    FIELD.enable();
+    if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+function onCharmShop(id) {
+  if (id !== "shrine_charm_shop") return;
+  FIELD.disable();
+  if (CH2TIMER) CH2TIMER.pause();
+  const backToField = () => { hideOverlay(); FIELD.enable(); if (CH2TIMER) CH2TIMER.resume(); };
+  if (STATE.chapter2.trafficCharm) {
+    showChoices("すでにお守りは買ってある。", [{ label: "戻る", onClick: backToField }]);
+    return;
+  }
+  showChoices(`お守り売り場だ。交通安全のお守りを買いますか？（G${CHAPTER2.charmPrice}）`, [
+    { label: "買う", onClick: () => {
+        if (STATE.player.gold < CHAPTER2.charmPrice) {
+          showChoices("お金が足りない……", [{ label: "戻る", onClick: backToField }]);
+          return;
+        }
+        STATE.player.gold -= CHAPTER2.charmPrice;
+        STATE.chapter2.trafficCharm = true;
+        saveGame(STATE);
+        showChoices("交通安全のお守りを買った。", [{ label: "OK", onClick: backToField }]);
+      } },
+    { label: "やめる", onClick: backToField },
+  ]);
+}
+
+// 本殿で祈ると、宝箱の有無に関係なく無条件で「神」が出現する。一度きりのイベント。
+function onMainHall(id) {
+  if (id !== "shrine_main_hall") return;
+  if (STATE.chapter2.shrinePrayed) return;
+  FIELD.disable();
+  if (CH2TIMER) CH2TIMER.pause();
+  STATE.chapter2.shrinePrayed = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>本殿の前で手を合わせた。
+
+（……何かが、こちらを見ている）</p>
+    <div class="choices"><button id="prayOk">……</button></div></div>`);
+  document.getElementById("prayOk").onclick = () => { hideOverlay(); startGodBattle(); };
 }
 
 function startGodBattle() {
@@ -674,7 +719,7 @@ function startGodBattle() {
   renderBattle(battle);
 }
 
-// 神戦は勝っても負けても「賽銭を取ったこと」自体への天罰が発生する
+// 神戦は勝っても負けても天罰が発生する（祈ったこと自体への天罰。賽銭の有無は無関係）
 function renderGodBattleEnd(result, battle) {
   if (result === "win") {
     if (!STATE.player.titles.includes(CHAPTER2.titles.god)) STATE.player.titles.push(CHAPTER2.titles.god);
@@ -685,25 +730,28 @@ function renderGodBattleEnd(result, battle) {
   STATE.chapter2.matchCountAtPunishment = STATE.chapter2.matchCount;
   STATE.player.hp = STATE.player.maxHp;
   const msg = result === "win"
-    ? `神を撃破した！\n隠し称号「${CHAPTER2.titles.god}」を獲得した。\nしかし賽銭を取った罰は消えないようだ……`
-    : "神の力の前に、田辺は膝をついた……\nしかし賽銭を取った罰は消えないようだ……";
+    ? `神を撃破した！\n隠し称号「${CHAPTER2.titles.god}」を獲得した。\n気づけば、いつの間にか自宅の前に立っていた……`
+    : "神の力の前に、田辺は膝をついた……\n気づけば、いつの間にか自宅の前に立っていた……";
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>${msg}</p><div class="choices"><button id="godBattleOk">OK</button></div></div>`);
   document.getElementById("godBattleOk").onclick = () => {
     hideOverlay();
+    STATE.position = { map: "home", x: 4, y: 15 }; // 神戦後は強制的に自宅へ戻す
     saveGame(STATE);
-    showHiroshiSonEvent();
+    showMomShrineReactionEvent();
   };
 }
 
-function showHiroshiSonEvent() {
-  STATE.chapter2.hiroshiSonSeen = true;
+// 神社から強制帰宅した直後の母イベント。お守りを買ってきたかどうかで反応が変わる
+function showMomShrineReactionEvent() {
+  const gotCharm = !!STATE.chapter2.trafficCharm;
   STATE.chapter2.objective = "次の公式戦に備えよう";
   saveGame(STATE);
-  showOverlay(`<div class="dialog"><p>ひろし君の息子：「…………」
-
-（田辺は特に気にとめなかった。）</p>
-    <div class="choices"><button id="sonOk">OK</button></div></div>`);
-  document.getElementById("sonOk").onclick = () => {
+  const line = gotCharm
+    ? "母：「お守り、ちゃんと買ってきてくれたのね。ありがとう。」"
+    : "母：「あら……お守りは？お参りだけしてきたの？もう、しっかりしてよね。」";
+  showOverlay(`<div class="dialog"><p>${line}</p>
+    <div class="choices"><button id="momShrineOk">OK</button></div></div>`);
+  document.getElementById("momShrineOk").onclick = () => {
     hideOverlay();
     FIELD.enable();
     FIELD.render();
@@ -766,6 +814,8 @@ function enterField() {
     onEnterPractice: () => enterPracticeMenu(),
     onChest: (id) => onChest(id),
     onAltar: (id) => onAltar(id),
+    onCharmShop: (id) => onCharmShop(id),
+    onMainHall: (id) => onMainHall(id),
     onPoliceEscape: () => onPoliceEscape(),
   });
   FIELD.enable();
