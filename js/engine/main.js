@@ -34,7 +34,8 @@ function init() {
   // マップ画像を先読みしておき、切り替わった瞬間に絵が出ない状態を防ぐ。
   // 背景パスはfield.jsのMAPSを単一の情報源にし、バージョンクエリのズレで
   // プリロードが効かなくなる事故を防ぐ（MAPSにマップを足せば自動的に先読みされる）。
-  ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png"]
+  ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png",
+    CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.png?v=1"]
     .concat(Object.values(MAPS).map(m => m.bg))
     .forEach(p => getImage(p));
   showTitleScreen();
@@ -1274,6 +1275,9 @@ function showPoliceInterrogation() {
         showOverlay(`<div class="dialog"><p>田辺：「売ってました。」</p>
           <div class="choices"><button id="pi4">……</button></div></div>`);
         document.getElementById("pi4").onclick = () => {
+          showOverlay(`<div class="dialog">${cutinTag(CHAPTER2.masseurBoss.sprite)}<p>警察：「整体院の${CHAPTER2.masseurBoss.name}にも、すでに手配がかかっている。」</p>
+            <div class="choices"><button id="pi4b">……</button></div></div>`);
+          document.getElementById("pi4b").onclick = () => {
           showOverlay(`<div class="dialog"><p>警察：「…………。」
 「悪徳整体師の一味はお前か！」</p>
             <div class="choices"><button id="pi5">……</button></div></div>`);
@@ -1295,6 +1299,7 @@ function showPoliceInterrogation() {
                 document.getElementById("pi8b").onclick = () => { hideOverlay(); startPoliceChase(); };
               }
             };
+          };
           };
         };
       };
@@ -1352,6 +1357,8 @@ class PoliceChase {
   render() {
     const c = this.ctx;
     c.fillStyle = "#1b1e24"; c.fillRect(0, 0, this.W, this.H);
+    const bg = getImage("assets/maps/police_chase_map.png?v=1");
+    if (bg) c.drawImage(bg, 0, 0, this.W, this.H);
     c.fillStyle = "rgba(80,200,120,.45)";
     c.beginPath(); c.arc(this.exit.x, this.exit.y, this.exit.r, 0, Math.PI * 2); c.fill();
     c.fillStyle = "#ffe082"; c.font = "bold 13px sans-serif"; c.textAlign = "center";
@@ -1621,6 +1628,8 @@ function onCharmShop(id) {
 
 // 本殿で祈ると、宝箱の有無に関係なく無条件で「神」が出現する。一度きりのイベント。
 function onMainHall(id) {
+  if (id === "seitai_clinic_desk") { enterSeitaiClinicBuilding(); return; }
+  if (id === "sebastian_clinic_desk") { enterSebastianClinic(); return; }
   if (id !== "shrine_main_hall") return;
   if (STATE.chapter2.shrinePrayed) return;
   FIELD.disable();
@@ -1774,12 +1783,10 @@ function enterBuilding(building) {
   else if (building.id === "tavern") openTavern();
   else if (building.id === "jobcenter") openJobCenter();
   else if (building.id === "house_interior") showHomeInterior();
-  else if (building.id === "sebastian_clinic") enterSebastianClinic();
-  else if (building.id === "seitai_clinic") enterSeitaiClinicBuilding();
   else if (building.id === "stadium") enterStadium();
 }
 
-// 整体院（フィールド上の独立した建物）。整体バイトが解放済みならそのまま整体バトルへ。
+// 田辺整体院マップの受付（mainHall）。整体バイトが解放済みならそのまま整体バトルへ。
 function enterSeitaiClinicBuilding() {
   FIELD.disable();
   if (!STATE.chapter2.massageJobUnlocked) {

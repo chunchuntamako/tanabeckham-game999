@@ -33,11 +33,11 @@ const MAPS = {
       // 第2章：ヒグチビッチとの実力差を痛感して少林寺行きを思い立った後に解放される
       { x: 6, y: 4, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
         requires: (state) => !!(state.chapter2 && state.chapter2.shaolinUnlocked) },
+      // 整体院は町とは別の独立した建物としてフィールド上に直接配置する。常時見える
+      // 出入口だが、中の受付（seitai_clinic_desk）に条件を満たすまでは何も起きない。
+      { x: 6, y: 9, to: "seitai_clinic", tx: 4, ty: 13, label: "整体院" },
     ],
-    // 整体院・スタジアムは町とは別の独立した建物としてフィールド上に直接配置する。
-    // どちらも常時見えているが、条件を満たすまでは入っても何も起きない（onEnterBuilding側で分岐）。
     buildings: [
-      { x: 6, y: 9, id: "seitai_clinic", name: "整体院" },
       { x: 5, y: 13, id: "stadium", name: "スタジアム" },
     ],
     encounter: { table: "field", rate: 0.14 },
@@ -47,7 +47,12 @@ const MAPS = {
     bg: "assets/maps/town_map.png?v=2",
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 9, label: "郊外" }],
+    exits: [
+      { x: 4, y: 15, to: "field", tx: 4, ty: 9, label: "郊外" },
+      // 第2章：整体院の先輩から紹介されるまでは出現しない
+      { x: 4, y: 9, to: "sebastian_clinic", tx: 4, ty: 13, label: "セバスチャン診療所",
+        requires: (state) => !!(state.chapter2 && state.chapter2.sebastianUnlocked) },
+    ],
     // 新しいイラストの各建物の扉の実際の位置に合わせて配置
     buildings: [
       { x: 4, y: 2, id: "jobcenter", name: "職安" },
@@ -55,9 +60,6 @@ const MAPS = {
       { x: 6, y: 6, id: "itemshop", name: "道具屋" },
       { x: 2, y: 9, id: "tavern", name: "酒場" },
       { x: 6, y: 9, id: "inn", name: "宿屋" },
-      // 第2章：整体院の先輩から紹介されるまでは出現しない
-      { x: 4, y: 9, id: "sebastian_clinic", name: "セバスチャン診療所",
-        requires: (state) => !!(state.chapter2 && state.chapter2.sebastianUnlocked) },
     ],
     encounter: null,
   },
@@ -118,6 +120,27 @@ const MAPS = {
     ],
     sensei: { x: 4, y: 1, id: "sasaki_sv", label: "佐々木SV",
       requires: (state) => !!(state.chapter2 && state.chapter2.shaolinKeizoDefeated && !state.chapter2.shaolinQuizDone) },
+  },
+  // 2026-09-17：田辺整体院・セバスチャン診療室の内観画像を受け取ったのを機に、
+  // ダイアログのポップアップではなく独立して歩き回れるマップに変更。
+  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  seitai_clinic: {
+    name: "田辺整体院",
+    bg: "assets/maps/seitai_clinic_interior.png?v=1",
+    bgm: "bgm_field",
+    w: 9, h: 16,
+    exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 9, label: "戻る" }],
+    mainHall: { x: 4, y: 5, id: "seitai_clinic_desk", label: "受付" },
+    encounter: null,
+  },
+  sebastian_clinic: {
+    name: "セバスチャン診療室",
+    bg: "assets/maps/sebastian_clinic_interior.png?v=1",
+    bgm: "bgm_field",
+    w: 9, h: 16,
+    exits: [{ x: 4, y: 15, to: "town", tx: 4, ty: 9, label: "戻る" }],
+    mainHall: { x: 4, y: 5, id: "sebastian_clinic_desk", label: "診察" },
+    encounter: null,
   },
 };
 

@@ -97,6 +97,9 @@ const CHAPTER2 = {
       immune: true, weakSpots: [], sellBonus: true, attackLines: ["早く帰りたいんじゃが……"] },
   ],
 
+  // 整体院の雇い主（悪徳整体師）。警察の聞き込みシーンでのみカットインする。
+  masseurBoss: { name: "院長", sprite: "assets/characters/masseur_boss.png" },
+
   // セバスチャン先生の治療費（うつ病モード解除）。何度でも払って治療できる。
   sebastianTreatmentCost: 500,
 
