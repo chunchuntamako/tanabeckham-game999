@@ -96,17 +96,23 @@ const CHAPTER2 = {
   // 「健康なおじいさん」（immune）はほぼ施術が効かない代わりに商品販売に弱い（レア）。
   patients: [
     { id: "waist_grandpa", name: "腰痛のおじいさん", hp: 60, atk: 8, reward: 40,
-      weakSpots: ["waist", "leg"], attackLines: ["まだ痛いぞ！", "もっと優しくしてくれ！"] },
+      weakSpots: ["waist", "leg"], attackLines: ["まだ痛いぞ！", "もっと優しくしてくれ！"],
+      sprite: "assets/characters/patient_waist_grandpa.png" },
     { id: "shoulder_grandma", name: "肩こりのおばあさん", hp: 70, atk: 10, reward: 45,
-      weakSpots: ["shoulder", "neck"], attackLines: ["前の先生の方が上手だった！", "下手くそ！"] },
+      weakSpots: ["shoulder", "neck"], attackLines: ["前の先生の方が上手だった！", "下手くそ！"],
+      sprite: "assets/characters/patient_shoulder_grandma.png" },
     { id: "knee_grandpa", name: "膝痛のおじいさん", hp: 100, atk: 9, reward: 55,
-      weakSpots: ["knee", "leg"], attackLines: ["そこじゃない！", "もっと真面目にやれ！"] },
+      weakSpots: ["knee", "leg"], attackLines: ["そこじゃない！", "もっと真面目にやれ！"],
+      sprite: "assets/characters/patient_knee_grandpa.png" },
     { id: "stiff_neck_lady", name: "寝違えのおばさん", hp: 55, atk: 14, reward: 40,
-      weakSpots: ["neck", "shoulder"], attackLines: ["痛い痛い痛い！"] },
+      weakSpots: ["neck", "shoulder"], attackLines: ["痛い痛い痛い！"],
+      sprite: "assets/characters/patient_stiff_neck_lady.png" },
     { id: "stiff_all_uncle", name: "全身バキバキのおじさん", hp: 130, atk: 12, reward: 80,
-      weakSpots: ["waist", "shoulder", "leg"], attackLines: ["全然効いてないぞ！"] },
+      weakSpots: ["waist", "shoulder", "leg"], attackLines: ["全然効いてないぞ！"],
+      sprite: "assets/characters/patient_stiff_all_uncle.png" },
     { id: "healthy_grandpa", name: "健康なおじいさん", hp: 30, atk: 5, reward: 100, rare: true,
-      immune: true, weakSpots: [], sellBonus: true, attackLines: ["早く帰りたいんじゃが……"] },
+      immune: true, weakSpots: [], sellBonus: true, attackLines: ["早く帰りたいんじゃが……"],
+      sprite: "assets/characters/patient_healthy_grandpa.png" },
   ],
 
   // 整体院の雇い主（悪徳整体師）。警察の聞き込みシーンでのみカットインする。
@@ -120,6 +126,13 @@ const CHAPTER2 = {
     copCount: 3,
     copSpeed: 1.7,
     playerSpeed: 2.6,
+    copSprites: [
+      "assets/characters/police_detective.png",
+      "assets/characters/police_young_officer.png",
+      "assets/characters/police_veteran_officer.png",
+      "assets/characters/police_woman_officer.png",
+      "assets/characters/police_riot_officer.png",
+    ],
   },
 
   // 第2章で新設する隠し称号

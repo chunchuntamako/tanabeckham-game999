@@ -36,6 +36,7 @@ function init() {
   // プリロードが効かなくなる事故を防ぐ（MAPSにマップを足せば自動的に先読みされる）。
   ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png",
     CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.jpg?v=1"]
+    .concat(CHAPTER2.policeChase.copSprites)
     .concat(Object.values(MAPS).map(m => m.bg))
     .forEach(p => getImage(p));
   showTitleScreen();
@@ -685,7 +686,7 @@ function showPromotionCelebration() {
   showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU J1昇格決定！！</b></p>
     <div class="choices"><button id="celebOk1">……</button></div></div>`);
   document.getElementById("celebOk1").onclick = () => {
-    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_join.jpg")}<p>選手たちがヒグチビッチのもとへ駆け寄り、宙へ何度も放り投げる。
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_captain.png")}<p>選手たちがヒグチビッチのもとへ駆け寄り、宙へ何度も放り投げる。
 
 タナベッカムは、ベンチから胴上げを見つめていた。</p>
       <div class="choices"><button id="celebOk2">……</button></div></div>`);
@@ -1036,7 +1037,11 @@ function enterMassageBattleJob() {
 
 function renderMassageBattle(m) {
   const p = STATE.player;
+  const spriteTag = m.patient.sprite
+    ? `<div class="enemy-sprite-wrap"><img src="${m.patient.sprite}" class="enemy-sprite" onerror="this.style.display='none'" /></div>`
+    : "";
   const html = `<div class="dialog battle">
+    ${spriteTag}
     <p><b>${m.patient.name}</b> 症状の残り：${Math.max(0, m.patient.curHp)}/${m.patient.hp}</p>
     <p>タナベッカム HP:${p.hp}/${p.maxHp}</p>
     <div class="log">${m.log.map(l => `<div>${l.replace(/\n/g, "<br>")}</div>`).join("")}</div>
@@ -1284,7 +1289,7 @@ function startPracticeMatch() {
 // 草サッカー（セバスチャン先生の助言で参加した1試合）の直後、警察の聞き込みが入る。
 function showPoliceInterrogation() {
   hideOverlay();
-  showOverlay(`<div class="dialog"><p>警察：「田辺さんですね？」</p>
+  showOverlay(`<div class="dialog">${cutinTag("assets/characters/police_detective.png")}<p>警察：「田辺さんですね？」</p>
     <div class="choices"><button id="pi1">……</button></div></div>`);
   document.getElementById("pi1").onclick = () => {
     showOverlay(`<div class="dialog"><p>田辺：「はい。」</p>
@@ -1344,7 +1349,8 @@ class PoliceChase {
     this.exit = { x: this.W / 2, y: this.H - 60, r: 32 };
     this.cops = [];
     for (let i = 0; i < cfg.copCount; i++) {
-      this.cops.push({ x: 30 + i * (this.W - 60) / Math.max(1, cfg.copCount - 1), y: this.H * 0.4, speed: cfg.copSpeed });
+      this.cops.push({ x: 30 + i * (this.W - 60) / Math.max(1, cfg.copCount - 1), y: this.H * 0.4, speed: cfg.copSpeed,
+        sprite: cfg.copSprites[i % cfg.copSprites.length] });
     }
     this.keys = {};
     this.keyDown = (e) => { this.keys[e.key] = true; };
@@ -1389,8 +1395,14 @@ class PoliceChase {
     c.fillStyle = "#ffe082"; c.font = "bold 13px sans-serif"; c.textAlign = "center";
     c.fillText("出口", this.exit.x, this.exit.y - this.exit.r - 8);
     c.fillStyle = "#42a5f5"; c.beginPath(); c.arc(this.player.x, this.player.y, 10, 0, Math.PI * 2); c.fill();
-    c.fillStyle = "#e53935";
-    this.cops.forEach((cop) => { c.beginPath(); c.arc(cop.x, cop.y, 10, 0, Math.PI * 2); c.fill(); });
+    this.cops.forEach((cop) => {
+      const img = cop.sprite && getImage(cop.sprite);
+      if (img) {
+        c.drawImage(img, cop.x - 15, cop.y - 19, 30, 38);
+      } else {
+        c.fillStyle = "#e53935"; c.beginPath(); c.arc(cop.x, cop.y, 10, 0, Math.PI * 2); c.fill();
+      }
+    });
   }
 }
 
