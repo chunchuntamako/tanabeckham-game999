@@ -350,7 +350,7 @@ function startChapter2Match() {
     } else {
       finishChapter2Match(evalResult);
     }
-  });
+  }, true);
   MATCH = match;
   match.enable();
 }
@@ -1144,7 +1144,10 @@ function startSeitaiEnding() {
 }
 
 // 「試合に行く」を選んだ場合。試合結果は自由（本編は分岐しない）で、終了後に解雇される。
+// CPU強化の対象試合なので、試合中だけlifeForkMatchActiveを立てておく。
 function startLifeForkMatchRoute() {
+  STATE.chapter2.lifeForkMatchActive = true;
+  saveGame(STATE);
   playBGM("bgm_match");
   canvas.style.display = "block";
   document.getElementById("soccerControls").style.display = "flex";
@@ -1153,8 +1156,10 @@ function startLifeForkMatchRoute() {
     document.getElementById("soccerControls").style.display = "none";
     hideSoccerSkillButtons();
     MATCH = null;
+    STATE.chapter2.lifeForkMatchActive = false;
+    saveGame(STATE);
     showDismissalEvent();
-  });
+  }, true);
   MATCH = match;
   match.enable();
 }
@@ -1268,7 +1273,7 @@ function startPracticeMatch() {
 田辺 ${evalResult.goals} - ${evalResult.conceded} 相手</p>
       <div class="choices"><button id="pmOk">OK</button></div></div>`);
     document.getElementById("pmOk").onclick = backToField;
-  });
+  }, true);
   MATCH = match;
   match.enable();
 }

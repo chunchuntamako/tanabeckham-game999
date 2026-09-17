@@ -3,17 +3,21 @@
 // パス・シュート・タックルに加え、習得済みなら「お年寄り殺し！」を実戦使用できる。
 
 class SoccerMatch {
-  constructor(canvas, state, durationSec, onEnd) {
+  constructor(canvas, state, durationSec, onEnd, hasHalftime) {
     this.canvas = canvas; this.ctx = canvas.getContext("2d");
     this.state = state; this.duration = durationSec; this.elapsed = 0; this.onEnd = onEnd;
     this.W = canvas.width; this.H = canvas.height;
     this.stats = { distance: 0, sprints: 0, pass: 0, shoot: 0, defense: 0, lateActive: 0, special: 0 };
     this.score = { player: 0, cpu: 0 };
     this.ball = { x: this.W / 2, y: this.H / 2, vx: 0, vy: 0, owner: null };
-    this.tanabe = { x: this.W / 2, y: this.H - 45, speed: 2.45, team: "player" };
+    // トップ下らしく、味方ラインより前（自陣ゴール前ではない）から開始する
+    this.tanabe = { x: this.W / 2, y: this.H * 0.42, speed: 2.45, team: "player" };
     const lane=(i,n)=>this.W*(i+1)/(n+1);
     this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
+    // 両ゴールに簡易ゴールキーパーを配置（ボールのx位置にゴールライン上で軽く追従するだけ）
+    this.playerGK = { x: this.W / 2, y: this.H - 20, team: "player" };
+    this.cpuGK = { x: this.W / 2, y: 20, team: "cpu" };
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
     this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
     this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, skill3:false, tackle:false, passReq:false };
@@ -23,6 +27,9 @@ class SoccerMatch {
     this.shaolinSpeedPenaltyActive = false;
     // 鬱病ドリブルは1試合最大2回まで
     this.depressionDribbleUsesThisMatch = 0;
+    // 前半・後半の中間休憩を挟む試合かどうか（金縛り試合は対象外）
+    this.hasHalftime = !!hasHalftime;
+    this.halftimePassed = false;
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
     if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
@@ -154,6 +161,13 @@ class SoccerMatch {
   tick() {
     this.elapsed += 1/30;
     if (this.elapsed >= this.duration) { this.finish(); return; }
+    // 前半・後半の中間休憩（対象試合のみ）。前半終了の結果を見せてから後半を再開する。
+    if (this.hasHalftime && !this.halftimePassed && this.elapsed >= this.duration / 2) {
+      this.halftimePassed = true;
+      this.disable();
+      this.showHalftimeBreak();
+      return;
+    }
     // 昇格決定戦：途中出場している間だけ、試合の半分を過ぎた頃に金縛りが再発し、
     // 数秒後に強制交代で試合が終わる（プレイヤー操作で回避・解除はできない仕様）
     if (this.state.chapter2 && this.state.chapter2.promotionDeciderMatch) {
@@ -188,6 +202,16 @@ class SoccerMatch {
     const jm = CHAPTER2.j1Modifier;
     // うつ病モード中は通常シュートが絶対に決まらない（少林シュート・鬱病ドリブルも別途使用不可にする）
     const depression = !!(this.state.chapter2 && this.state.chapter2.depressionMode);
+    // 特に強く見せたい試合（J1開幕戦・人生分岐「試合に行く」・解雇後の草サッカー）は
+    // 他の補正に上乗せでCPUを強化する
+    const boosted = !!(this.state.chapter2 && (
+      (j1 && this.state.chapter2.matchCountAtJ1Start != null && this.state.chapter2.matchCountAtJ1Start === this.state.chapter2.matchCount) ||
+      this.state.chapter2.lifeForkMatchActive ||
+      this.state.chapter2.dismissedFromClub
+    ));
+    const kb = CHAPTER2.keyMatchBoost;
+    // ゴールキーパーがいる分、双方ともシュートがわずかに決まりにくくなる
+    const GK_SHOT_PENALTY = 0.06;
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
@@ -210,9 +234,10 @@ class SoccerMatch {
         const distX=Math.abs(this.tanabe.x-this.W/2);
         const alignFactor=Math.max(0,1-distX/130);
         const rangeFactor=this.tanabe.y<this.H*.3?1:(this.tanabe.y<this.H*.5?.55:.2);
-        let shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor);
+        let shotChance=Math.min(.88,.14+sk.shoot*.035+alignFactor*.3*rangeFactor)-GK_SHOT_PENALTY;
         if(misfortune)shotChance-=mm.mateShootRatePenalty;
         if(j1)shotChance-=jm.playerShotChancePenalty;
+        if(boosted)shotChance-=kb.playerShotChancePenalty;
         shotChance=Math.max(.05,shotChance);
         if(depression)shotChance=0;
         if(Math.random()<shotChance){
@@ -299,6 +324,7 @@ class SoccerMatch {
     const debuffed=this.elapsed<this.specialUntil;
     let enemySpeed=debuffed?1.05:1.5;
     if(j1)enemySpeed*=jm.enemySpeedMultiplier;
+    if(boosted)enemySpeed*=kb.enemySpeedMultiplier;
     // 敵もボールへ丸ごと群がらず、一番近い1人だけがプレスして、残りは陣形を保って
     // ボール側へじわっと寄る。ボールを持ったら少し保持した後、前にいる味方へパスを回す。
     let nearestEnemy=null,nearestEnemyDist=Infinity;
@@ -325,15 +351,23 @@ class SoccerMatch {
         this.ball.owner=null;this.ball.vx=Math.cos(ang)*5.5;this.ball.vy=Math.sin(ang)*5.5;en.holdSec=0;
       } else if(en.y>this.H*.55&&Math.random()<(debuffed?.008:.014)){
         this.ball.owner=null;this.ball.vy=6;
-        let cpuShotChance=(debuffed?.08:.18);
+        let cpuShotChance=(debuffed?.08:.18)-GK_SHOT_PENALTY;
         if(misfortune)cpuShotChance+=mm.enemyShootRateBonus+mm.unluckyConcedeRate;
         if(j1)cpuShotChance+=jm.enemyShootRateBonus;
+        if(boosted)cpuShotChance+=kb.enemyShootRateBonus;
+        cpuShotChance=Math.max(.02,cpuShotChance);
         if(Math.random()<cpuShotChance){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
       }
     });
 
     // ボールが画面外へ行ったらセンターへ（得点によるものではないのでキックオフ側の指定なし）
     if(!this.pendingGoal&&(this.ball.x<-20||this.ball.x>this.W+20||this.ball.y<-20||this.ball.y>this.H+20))this.resetBall();
+
+    // ゴールキーパーはゴールライン上でボールのx位置に軽く追従するだけの簡易AI
+    const gkRange=40;
+    this.playerGK.x=this.W/2+Math.max(-gkRange,Math.min(gkRange,this.ball.x-this.W/2));
+    this.cpuGK.x=this.W/2+Math.max(-gkRange,Math.min(gkRange,this.ball.x-this.W/2));
+
     this.render();
   }
   // concedeTeam: 失点した側。そのままセンターサークルからそのチームのボールで再開する
@@ -341,6 +375,17 @@ class SoccerMatch {
     this.ball.owner=null;this.ball.x=this.W/2;this.ball.y=this.H/2;this.ball.vx=0;this.ball.vy=0;
     if(concedeTeam==="cpu"){const en=this.enemies[0];en.x=this.W/2-10;en.y=this.H/2+18;this.ball.owner=en;}
     else if(concedeTeam==="player"){this.tanabe.x=this.W/2;this.tanabe.y=this.H/2+18;this.ball.owner=this.tanabe;}
+  }
+  // 前半終了の中間結果を見せて、「後半開始」でキックオフし直す
+  showHalftimeBreak(){
+    showOverlay(`<div class="dialog"><p><b>前半終了</b>
+田辺 ${this.score.player} - ${this.score.cpu} 相手</p>
+      <div class="choices"><button id="halftimeGoBtn">後半開始</button></div></div>`);
+    document.getElementById("halftimeGoBtn").onclick = () => {
+      hideOverlay();
+      this.resetBall();
+      this.enable();
+    };
   }
   finish(){
     this.disable();
@@ -369,7 +414,10 @@ class SoccerMatch {
     c.save();c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=2;c.strokeRect(12,12,this.W-24,this.H-24);c.beginPath();c.moveTo(12,this.H/2);c.lineTo(this.W-12,this.H/2);c.stroke();c.beginPath();c.arc(this.W/2,this.H/2,36,0,Math.PI*2);c.stroke();
     // goals
     c.strokeRect(this.W/2-55,12,110,22);c.strokeRect(this.W/2-55,this.H-34,110,22);c.restore();
-    const drawPlayer=(o,color)=>{c.fillStyle=color;c.beginPath();c.arc(o.x,o.y,8,0,Math.PI*2);c.fill();c.strokeStyle="#fff";c.stroke();};
+    const drawPlayer=(o,color,r)=>{c.fillStyle=color;c.beginPath();c.arc(o.x,o.y,r||8,0,Math.PI*2);c.fill();c.strokeStyle="#fff";c.stroke();};
+    // ゴールキーパーは各ゴールライン上に常駐（フィールドプレイヤーとは別色で描き分ける）
+    drawPlayer(this.playerGK,"#43a047",9);
+    drawPlayer(this.cpuGK,"#fdd835",9);
     // 選手はドット絵の味方／敵スプライトで統一表示。読み込み前は従来の丸に自動フォールバック。
     const teamSprite=getImage("assets/characters/soccer_teammate.png");
     const enemySprite=getImage("assets/characters/soccer_enemy.png");
@@ -379,7 +427,8 @@ class SoccerMatch {
       if(enemySprite){c.save();if(debuffed)c.globalAlpha=.55;c.drawImage(enemySprite,e.x-9,e.y-15,18,26);c.restore();}
       else drawPlayer(e,debuffed?"#b07b7b":"#d32f2f");
     });
-    const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-12,this.tanabe.y-18,24,34);else drawPlayer(this.tanabe,"#ffd54f");
+    // トップ下として目立つよう、田辺のスプライトは味方より一回り大きく描く
+    const ti=getImage("assets/characters/tanabe.png?v=2");if(ti)c.drawImage(ti,this.tanabe.x-15,this.tanabe.y-21,30,42);else drawPlayer(this.tanabe,"#ffd54f",10);
     // 呪いレベル分の💩を田辺の頭上に常時表示
     if(this.state.chapter2&&this.state.chapter2.curseLevel>=1){
       const n=this.state.chapter2.curseLevel;

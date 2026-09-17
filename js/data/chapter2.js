@@ -6,7 +6,7 @@ const CHAPTER2 = {
   chapterId: 2,
 
   matchIntervalSec: 5 * 60,  // 次回公式戦までの実プレイ秒数
-  matchDurationSec: 90,      // 公式戦1試合の実プレイ秒数
+  matchDurationSec: 40,      // 公式戦1試合の実プレイ秒数（前半20秒＋後半20秒）
 
   matchPayment: 50,          // 出場給（実際に出場した試合のみ）
 
@@ -66,6 +66,14 @@ const CHAPTER2 = {
     playerShotChancePenalty: 0.09, // 守備・GKが堅く、田辺のシュートが通りにくい
     tackleChancePenalty: 0.1,      // J1の相手には田辺のタックルが通用しにくい
     passInterceptBonus: 4,         // 相手のパスカット（ルーズボール回収半径）が広い
+  },
+
+  // 特に強く見せたい試合だけの追加補正（J1開幕戦・人生分岐「試合に行く」・
+  // 解雇後の草サッカー）。他の補正（j1Modifier等）とは重ねがけしてよい。
+  keyMatchBoost: {
+    enemySpeedMultiplier: 1.2,
+    enemyShootRateBonus: 0.1,
+    playerShotChancePenalty: 0.07,
   },
 
 
@@ -209,6 +217,7 @@ const CHAPTER2 = {
 
     // --- 人生分岐・整体師END／解雇・うつ病 ---
     lifeForkShown: false,       // 「試合に行く/整体で稼ぐ」の人生分岐を見たか（一度きり）
+    lifeForkMatchActive: false, // 人生分岐「①試合に行く」の試合中だけtrue（CPU強化の対象判定用）
     seitaiEndingReached: false, // 整体師中間エンディングに到達したか
     dismissedFromClub: false,   // FC山陽TIGAKUを解雇されたか（練習試合→草サッカーの呼称もこれで切り替え）
     depressionMode: false,      // true の間、通常シュート不発・少林シュート/鬱病ドリブル使用不可
