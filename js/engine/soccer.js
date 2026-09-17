@@ -16,11 +16,13 @@ class SoccerMatch {
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
     this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
-    this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, tackle:false, passReq:false };
+    this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, skill3:false, tackle:false, passReq:false };
     // 昇格決定戦：途中出場中のみ使う、金縛り再発〜強制交代の一度きりのスクリプトイベント用
     this.promotionDeciderTriggered = false; this.promotionDeciderForceEndAt = null;
     // 少林シュートを実際に使用した試合は、終了まで田辺の移動速度が50%になる
     this.shaolinSpeedPenaltyActive = false;
+    // 鬱病ドリブルは1試合最大2回まで
+    this.depressionDribbleUsesThisMatch = 0;
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
     if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
@@ -54,6 +56,7 @@ class SoccerMatch {
     const sk = CHAPTER2.skillShaolinShoot;
     if (!this.state.player.learnedSkills.includes(sk.id)) return;
     const c2 = this.state.chapter2;
+    if (c2 && c2.depressionMode) { this.banner("……何も起きなかった。"); return; }
     if (c2 && c2.promotionDeciderMatch) {
       c2.shaolinShotUsedThisMatch = true;
       this.banner("ガッツがたりない！");
@@ -76,6 +79,33 @@ class SoccerMatch {
       } else {
         this.banner("少林シュート……ブロックされた！");
         this.resetBall();
+      }
+      this.enable();
+    });
+  }
+
+  // うつ病モード中に練習場で習得する必殺技。1試合最大2回。うつ病モード中は使用不可
+  // （＝習得した回では使えず、モード解除後の次の試合から使える）。
+  // 2回目を使った瞬間、うつ病モードに再突入する（試合後も継続。合理化・救済はしない）。
+  trySpecialDepressionDribble() {
+    const sk = CHAPTER2.skillDepressionDribble;
+    if (!this.state.player.learnedSkills.includes(sk.id)) return;
+    const c2 = this.state.chapter2;
+    if (c2 && c2.depressionMode) { this.banner("……身体が動かない。"); return; }
+    if (this.depressionDribbleUsesThisMatch >= sk.maxUsesPerMatch) { this.banner("……もう無理だ。"); return; }
+    this.depressionDribbleUsesThisMatch += 1;
+    this.disable();
+    showCutsceneChain([
+      { text: "田辺：「…………。」" },
+      { text: "「ピキーン！」" },
+    ], () => {
+      this.ball.owner = this.tanabe;
+      this.tanabe.x = this.W / 2 + (Math.random() - 0.5) * 40;
+      this.tanabe.y = 55;
+      this.ball.x = this.tanabe.x; this.ball.y = this.tanabe.y - 13;
+      this.banner("鬱病ドリブル！ 相手の守備を無視してゴール前へ！");
+      if (this.depressionDribbleUsesThisMatch >= sk.maxUsesPerMatch && c2) {
+        c2.depressionMode = true;
       }
       this.enable();
     });
@@ -143,6 +173,7 @@ class SoccerMatch {
     if (!paralyzed) {
       if (this.pressed("z","skill")) this.trySpecial();
       if (this.pressed("v","skill2")) this.trySpecialShaolin();
+      if (this.pressed("b","skill3")) this.trySpecialDepressionDribble();
       if (this.pressed("c","tackle")) this.tryTackle();
       if (this.pressed("r","passReq")) this.requestPass();
     }
@@ -155,6 +186,8 @@ class SoccerMatch {
     // J1編は天罰とは別に、相手が常に一段強い（呪いが解けても解除されない）
     const j1 = this.state.chapter2 && this.state.chapter2.j1Mode;
     const jm = CHAPTER2.j1Modifier;
+    // うつ病モード中は通常シュートが絶対に決まらない（少林シュート・鬱病ドリブルも別途使用不可にする）
+    const depression = !!(this.state.chapter2 && this.state.chapter2.depressionMode);
 
     const sk = this.state.player.soccerSkills;
     let dx=0,dy=0;
@@ -181,6 +214,7 @@ class SoccerMatch {
         if(misfortune)shotChance-=mm.mateShootRatePenalty;
         if(j1)shotChance-=jm.playerShotChancePenalty;
         shotChance=Math.max(.05,shotChance);
+        if(depression)shotChance=0;
         if(Math.random()<shotChance){
           // 天罰中はポストに嫌われることがある（得点にはせず、こぼれ球にする）
           if(misfortune&&Math.random()<mm.postEventRate){this.banner("ポストに嫌われた……");this.ball.owner=null;this.ball.vx=(Math.random()-.5)*3;this.ball.vy=-3;}

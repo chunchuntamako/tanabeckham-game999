@@ -294,6 +294,18 @@ FC山陽TIGAKU・J2
   };
 }
 
+// 試合中に使える必殺技系ボタンの表示・非表示をまとめて扱う（複数の試合入口で共用）。
+function updateSoccerSkillButtons() {
+  document.getElementById("btn-skill").style.display = STATE.player.learnedSkills.includes(CHAPTER0.skillOjiisanGoroshi.id) ? "inline-block" : "none";
+  document.getElementById("btn-skill2").style.display = STATE.player.learnedSkills.includes(CHAPTER2.skillShaolinShoot.id) ? "inline-block" : "none";
+  document.getElementById("btn-skill3").style.display = STATE.player.learnedSkills.includes(CHAPTER2.skillDepressionDribble.id) ? "inline-block" : "none";
+}
+function hideSoccerSkillButtons() {
+  document.getElementById("btn-skill").style.display = "none";
+  document.getElementById("btn-skill2").style.display = "none";
+  document.getElementById("btn-skill3").style.display = "none";
+}
+
 // 序盤数試合は不遇補正なし（企画仕様どおり）。SoccerMatchをそのまま流用する。
 function startChapter2Match() {
   // ベンチ組が途中出場のチャンスを使って出た試合。アピール値は使い切る。
@@ -302,14 +314,10 @@ function startChapter2Match() {
   playBGM("bgm_match");
   canvas.style.display = "block";
   document.getElementById("soccerControls").style.display = "flex";
-  const skillBtn = document.getElementById("btn-skill");
-  skillBtn.style.display = STATE.player.learnedSkills.includes(CHAPTER0.skillOjiisanGoroshi.id) ? "inline-block" : "none";
-  const skillBtn2 = document.getElementById("btn-skill2");
-  skillBtn2.style.display = STATE.player.learnedSkills.includes(CHAPTER2.skillShaolinShoot.id) ? "inline-block" : "none";
+  updateSoccerSkillButtons();
   const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, (evalResult) => {
     document.getElementById("soccerControls").style.display = "none";
-    document.getElementById("btn-skill").style.display = "none";
-    document.getElementById("btn-skill2").style.display = "none";
+    hideSoccerSkillButtons();
     MATCH = null;
     if (evalResult.promotionDeciderForcedSub) {
       finishPromotionDeciderMatch(evalResult);
@@ -875,6 +883,11 @@ function enterMassageBattleJob() {
   const battle = new MassageBattle(STATE, patient, (result) => {
     MASSAGE = null;
     if (result === "won") {
+      if (!STATE.chapter2.lifeForkShown &&
+          (STATE.player.seitaiSkill + STATE.player.salesSkill) >= CHAPTER2.lifeForkSkillThreshold) {
+        showLifeForkCall();
+        return;
+      }
       showChoices("次の患者を探しますか？", [
         { label: "続ける", onClick: enterMassageBattleJob },
         { label: "やめる", onClick: backToField },
@@ -947,6 +960,183 @@ function renderMassageBattleEnd(m) {
     hideOverlay();
     m.onEnd(m.result);
   };
+}
+
+// ---------- 第2章：人生分岐（試合に行く／整体で稼ぐ） ----------
+function showLifeForkCall() {
+  STATE.chapter2.lifeForkShown = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>監督：「田辺、今日ベンチに入れ。出番があるかもしれない。」</p>
+    <div class="choices">
+      <button id="lifeForkMatch">①試合に行く</button>
+      <button id="lifeForkMassage">②整体で稼ぐ</button>
+    </div></div>`);
+  document.getElementById("lifeForkMatch").onclick = () => { hideOverlay(); startLifeForkMatchRoute(); };
+  document.getElementById("lifeForkMassage").onclick = () => { hideOverlay(); startSeitaiEnding(); };
+}
+
+// 中間・通常エンディング共通のスタッフロール演出。onDoneで分岐直前などへ復帰させる。
+function showEndingRoll(titleText, bodyHtml, onDone) {
+  playBGM("bgm_title");
+  showOverlay(`<div class="credits-wrap">
+    <div class="credits-scroll">
+      <h2>${titleText}</h2>
+      ${bodyHtml}
+      <h3>CAST</h3>
+      <p>田辺（タナベッカム）</p>
+      <p>ヒグチビッチ</p>
+      <p>ひろし君</p>
+      <p>母</p>
+      <h3>SPECIAL THANKS</h3>
+      <p>ここまで遊んでくれたあなたに</p>
+    </div>
+    <button id="creditsSkip" class="credits-skip">スキップ</button>
+  </div>`);
+  const finish = () => { hideOverlay(); onDone(); };
+  document.getElementById("creditsSkip").onclick = finish;
+  setTimeout(finish, 16000);
+}
+
+// 「整体で稼ぐ」を選んだ場合の中間エンディング。ゲームオーバー扱いではなく、
+// エンディング後は分岐直前（整体アルバイトの続き）から再開できる。
+function startSeitaiEnding() {
+  STATE.chapter2.seitaiEndingReached = true;
+  saveGame(STATE);
+  showEndingRoll("ENDING「整体師タナベッカム」", `
+    <p>田辺はサッカー選手としての道を離れ、整体師として生きることを選んだ。</p>
+    <p>腕を磨き、自分の整体院を開業。多くの患者に慕われ、幸せな人生を送った。</p>
+    <p><b>タナベッカムは整体師として、幸せな一生を終えた。</b></p>
+  `, () => {
+    showOverlay(`<div class="dialog"><p>中間エンディングを達成しました！</p>
+      <div class="choices"><button id="seitaiEndBackOk">分岐直前に戻る</button></div></div>`);
+    document.getElementById("seitaiEndBackOk").onclick = () => {
+      hideOverlay();
+      enterMassageBattleJob();
+    };
+  });
+}
+
+// 「試合に行く」を選んだ場合。試合結果は自由（本編は分岐しない）で、終了後に解雇される。
+function startLifeForkMatchRoute() {
+  playBGM("bgm_match");
+  canvas.style.display = "block";
+  document.getElementById("soccerControls").style.display = "flex";
+  updateSoccerSkillButtons();
+  const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, () => {
+    document.getElementById("soccerControls").style.display = "none";
+    hideSoccerSkillButtons();
+    MATCH = null;
+    showDismissalEvent();
+  });
+  MATCH = match;
+  match.enable();
+}
+
+function showDismissalEvent() {
+  showOverlay(`<div class="dialog"><p>監督：「田辺。」
+
+「今日の試合のことじゃない。」
+「最近のお前を見て決めた。」</p>
+    <div class="choices"><button id="dismiss1">……</button></div></div>`);
+  document.getElementById("dismiss1").onclick = () => {
+    showOverlay(`<div class="dialog"><p><b>「契約はここまでだ。」</b></p>
+      <div class="choices"><button id="dismiss2">……</button></div></div>`);
+    document.getElementById("dismiss2").onclick = () => {
+      showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>田辺：「え？」</p>
+        <div class="choices"><button id="dismiss3">……</button></div></div>`);
+      document.getElementById("dismiss3").onclick = () => {
+        showOverlay(`<div class="dialog"><p>監督：「お前は窓ふきでもしてろ。」</p>
+          <div class="choices"><button id="dismiss4">……</button></div></div>`);
+        document.getElementById("dismiss4").onclick = () => {
+          showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU 解雇</b></p>
+            <div class="choices"><button id="dismiss5">……</button></div></div>`);
+          document.getElementById("dismiss5").onclick = () => {
+            STATE.chapter2.dismissedFromClub = true;
+            saveGame(STATE);
+            startDepressionMode();
+          };
+        };
+      };
+    };
+  };
+}
+
+// ---------- 第2章：うつ病モード・鬱病ドリブル ----------
+function startDepressionMode() {
+  STATE.chapter2.depressionMode = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>解雇された田辺は、その場に立ち尽くした。</p>
+    <div class="choices"><button id="depOk1">……</button></div></div>`);
+  document.getElementById("depOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p><b>うつ病モードに突入しました</b></p>
+      <div class="choices"><button id="depOk2">……</button></div></div>`);
+    document.getElementById("depOk2").onclick = () => {
+      STATE.chapter2.objective = "……";
+      STATE.position = { map: "home", x: 4, y: 14 };
+      saveGame(STATE);
+      hideOverlay();
+      enterField();
+    };
+  };
+}
+
+function showDepressionDribbleLearnEvent() {
+  FIELD && FIELD.disable();
+  showOverlay(`<div class="dialog"><p>田辺：「…………。」</p>
+    <div class="choices"><button id="ddOk1">……</button></div></div>`);
+  document.getElementById("ddOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>「ピキーン！」</p>
+      <div class="choices"><button id="ddOk2">……</button></div></div>`);
+    document.getElementById("ddOk2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>田辺：「……これだ。」</p>
+        <div class="choices"><button id="ddOk3">……</button></div></div>`);
+      document.getElementById("ddOk3").onclick = () => {
+        showOverlay(`<div class="dialog"><p><b>タナベッカムは『鬱病ドリブル』をひらめいた！</b></p>
+          <div class="choices"><button id="ddOk4">OK</button></div></div>`);
+        document.getElementById("ddOk4").onclick = () => {
+          if (!STATE.player.learnedSkills.includes(CHAPTER2.skillDepressionDribble.id)) {
+            STATE.player.learnedSkills.push(CHAPTER2.skillDepressionDribble.id);
+          }
+          saveGame(STATE);
+          backToField();
+        };
+      };
+    };
+  };
+}
+
+// ---------- 第2章：練習試合／草サッカー ----------
+function enterPracticeMatchIntro() {
+  if (STATE.chapter2.dismissedFromClub) {
+    const guests = ["近所のおじさん", "学生", "サラリーマン", "元プロ（自称）"];
+    const guest = guests[Math.floor(Math.random() * guests.length)];
+    showChoices(`草サッカーの参加者を探した。\n今日のメンバー：あなた、${guest}、その他モブ選手たち。`, [
+      { label: "始める", onClick: startPracticeMatch },
+      { label: "やめる", onClick: backToField },
+    ]);
+  } else {
+    startPracticeMatch();
+  }
+}
+
+function startPracticeMatch() {
+  hideOverlay();
+  const isKusa = STATE.chapter2.dismissedFromClub;
+  playBGM("bgm_match");
+  canvas.style.display = "block";
+  document.getElementById("soccerControls").style.display = "flex";
+  updateSoccerSkillButtons();
+  const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, (evalResult) => {
+    document.getElementById("soccerControls").style.display = "none";
+    hideSoccerSkillButtons();
+    MATCH = null;
+    showOverlay(`<div class="dialog"><p>${isKusa ? "草サッカー" : "練習試合"}が終わった。
+田辺 ${evalResult.goals} - ${evalResult.conceded} 相手</p>
+      <div class="choices"><button id="pmOk">OK</button></div></div>`);
+    document.getElementById("pmOk").onclick = backToField;
+  });
+  MATCH = match;
+  match.enable();
 }
 
 // ---------- 第2章：悪徳整体師逮捕・警察逃走ダンジョン・エンディング ----------
@@ -1522,12 +1712,20 @@ function enterPracticeMenu() {
   FIELD.disable();
   const skills = ["shoot", "pass", "dribble", "defense", "run"];
   const labels = { shoot: "シュート", pass: "パス", dribble: "ドリブル", defense: "ディフェンス", run: "走り込み" };
+  const showMatchEntry = STATE.chapter2 && STATE.chapter2.started;
   let html = `<div class="dialog"><p>体力: ${STATE.player.stamina}/${STATE.player.maxStamina}</p><ul>`;
   skills.forEach((s, i) => { html += `<li><button data-i="${i}">${labels[s]}練習</button></li>`; });
+  if (showMatchEntry) html += `<li><button id="practiceMatchGo">${STATE.chapter2.dismissedFromClub ? "草サッカー" : "練習試合"}</button></li>`;
   html += `</ul><button id="closePractice">出る</button></div>`;
   showOverlay(html);
   skills.forEach((s, i) => {
     overlay.querySelector(`[data-i="${i}"]`).onclick = () => {
+      // うつ病モード中、未習得なら「ドリブル練習」が専用の習得イベントに差し替わる
+      if (s === "dribble" && STATE.chapter2 && STATE.chapter2.depressionMode &&
+          !STATE.player.learnedSkills.includes(CHAPTER2.skillDepressionDribble.id)) {
+        showDepressionDribbleLearnEvent();
+        return;
+      }
       const staminaCost = CHAPTER0.practiceCost.stamina;
       if (STATE.player.stamina >= staminaCost) {
         STATE.player.stamina -= staminaCost;
@@ -1545,6 +1743,7 @@ function enterPracticeMenu() {
       enterPracticeMenu();
     };
   });
+  if (showMatchEntry) document.getElementById("practiceMatchGo").onclick = enterPracticeMatchIntro;
   overlay.querySelector("#closePractice").onclick = backToField;
 }
 
@@ -1760,4 +1959,5 @@ function setupTouchControls() {
   bind("btn-tackle", () => MATCH && MATCH.setKey("c", true), () => MATCH && MATCH.setKey("c", false));
   bind("btn-skill", () => MATCH && MATCH.setKey("z", true), () => MATCH && MATCH.setKey("z", false));
   bind("btn-skill2", () => MATCH && MATCH.setKey("v", true), () => MATCH && MATCH.setKey("v", false));
+  bind("btn-skill3", () => MATCH && MATCH.setKey("b", true), () => MATCH && MATCH.setKey("b", false));
 }

@@ -117,6 +117,17 @@ const CHAPTER2 = {
     successRate: 0.85,
   },
 
+  // うつ病モード中の練習場で習得する必殺技。1試合最大2回。2回目の使用で
+  // うつ病モードに再突入する（試合後も継続）。
+  skillDepressionDribble: {
+    id: "depression_dribble",
+    name: "鬱病ドリブル",
+    maxUsesPerMatch: 2,
+  },
+
+  // 整体・販売スキルの合計がこの値に達すると、クラブから連絡が来て人生分岐が発生する
+  lifeForkSkillThreshold: 6,
+
   storyFlagsDefault: {
     // --- 基本進行 ---
     started: false,
@@ -186,6 +197,12 @@ const CHAPTER2 = {
     massageWorkCount: 0,
     seitaiSkillSeeded: false,     // プロローグの整体ポイントを整体スキル初期値へボーナス反映済みか（一度きり）
     patientsDefeatedCount: 0,     // 整体バトルで「こらしめた」患者の人数（後の警察イベントの伏線）
+
+    // --- 人生分岐・整体師END／解雇・うつ病 ---
+    lifeForkShown: false,       // 「試合に行く/整体で稼ぐ」の人生分岐を見たか（一度きり）
+    seitaiEndingReached: false, // 整体師中間エンディングに到達したか
+    dismissedFromClub: false,   // FC山陽TIGAKUを解雇されたか（練習試合→草サッカーの呼称もこれで切り替え）
+    depressionMode: false,      // true の間、通常シュート不発・少林シュート/鬱病ドリブル使用不可
 
     // --- 逮捕・逃走 ---
     masseurArrested: false,

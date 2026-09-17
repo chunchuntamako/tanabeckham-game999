@@ -110,6 +110,15 @@ button { font:inherit; }
 .dialog button[disabled] { opacity:.35; pointer-events:none; }
 .title-image { width:100%; max-width:420px; display:block; margin:0 auto 14px; border-radius:12px; }
 
+/* 中間・通常エンディング共通のスタッフロール演出。下から上へゆっくりスクロールする。 */
+.credits-wrap { position:relative; min-height:100%; height:100%; overflow:hidden; background:#000; color:#fff; }
+.credits-scroll { position:absolute; left:0; right:0; bottom:-115%; text-align:center; padding:0 20px; animation:creditsScroll 16s linear forwards; }
+.credits-scroll h2 { margin:18px 0 12px; font-size:20px; }
+.credits-scroll h3 { margin:26px 0 8px; color:#ffd54f; font-size:13px; letter-spacing:3px; }
+.credits-scroll p { margin:5px 0; line-height:1.7; }
+@keyframes creditsScroll { from { bottom:-115%; } to { bottom:115%; } }
+.credits-skip { position:absolute; bottom:12px; right:12px; z-index:5; width:auto; min-height:38px; padding:6px 14px; font-size:12px; background:rgba(30,30,30,.75); color:#fff; border:1px solid #777; border-radius:8px; }
+
 /* タイトル・オープニングなど、1枚絵をそのまま全画面表示する用途。
    画面比率が絵の比率(9:16)と違っても、絵が切れないよう中央にレターボックス表示する。 */
 .full-screen-art { position:absolute; inset:0; overflow:hidden; background:#000; display:flex; align-items:center; justify-content:center; }
