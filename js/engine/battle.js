@@ -118,11 +118,7 @@ class BattleController {
       }
     } else if (cmd === "flee") {
       const misfortune = this.state.chapter2 && this.state.chapter2.misfortuneMode;
-      let fleeChance = 0.6 - (misfortune ? CHAPTER2.misfortuneRpgModifier.escapeRatePenalty : 0);
-      // 警察逃走ダンジョンでは、田辺の走力・スタミナが逃走に有利に働く
-      if (this.state.position && this.state.position.map === "policeDungeon") {
-        fleeChance += Math.min(0.3, p.soccerSkills.run * 0.02 + p.stamina * 0.001);
-      }
+      const fleeChance = 0.6 - (misfortune ? CHAPTER2.misfortuneRpgModifier.escapeRatePenalty : 0);
       if (!this.enemy.boss && Math.random() < fleeChance) {
         this.addLog("うまく逃げ切った！");
         this.ended = true; saveGame(this.state); this.onEnd("flee"); return true;

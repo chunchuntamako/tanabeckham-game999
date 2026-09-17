@@ -6,6 +6,7 @@ let TIMER = null;
 let CH2TIMER = null;
 let FIELD = null;
 let MATCH = null;
+let CHASE = null;
 let IN_BATTLE = false;
 let PENDING_TIMEUP = false;
 
@@ -867,10 +868,95 @@ function showJ2RelegationEvent() {
   };
 }
 
+// ---------- 第2章：整体院の先輩・セバスチャン先生 ----------
+function showSeniorSebastianIntro() {
+  STATE.chapter2.seniorEventShown = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>先輩：「田辺、最近元気ないな。」</p>
+    <div class="choices"><button id="sen1">……</button></div></div>`);
+  document.getElementById("sen1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「……サッカー、クビになったんで。」</p>
+      <div class="choices"><button id="sen2">……</button></div></div>`);
+    document.getElementById("sen2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>先輩：「そうか……。」</p>
+        <div class="choices"><button id="sen3">……</button></div></div>`);
+      document.getElementById("sen3").onclick = () => {
+        showOverlay(`<div class="dialog"><p>先輩：「いい先生知ってるぞ。」
+「セバスチャン先生って人なんだけど、紹介してやろうか？」</p>
+          <div class="choices"><button id="sen4">OK</button></div></div>`);
+        document.getElementById("sen4").onclick = () => {
+          STATE.chapter2.sebastianUnlocked = true;
+          saveGame(STATE);
+          enterMassageBattleJob();
+        };
+      };
+    };
+  };
+}
+
+function enterSebastianClinic() {
+  FIELD.disable();
+  if (!STATE.chapter2.depressionMode) {
+    showChoices("セバスチャン先生：「今は特に問題なさそうだな。」", [
+      { label: "戻る", onClick: backToField },
+    ]);
+    return;
+  }
+  showChoices(`セバスチャン先生の治療を受けますか？（G${CHAPTER2.sebastianTreatmentCost}を消費します）`, [
+    { label: "治療を受ける", onClick: performSebastianTreatment },
+    { label: "やめる", onClick: backToField },
+  ]);
+}
+
+function performSebastianTreatment() {
+  const cost = CHAPTER2.sebastianTreatmentCost;
+  if (STATE.player.gold < cost) {
+    showChoices("お金が足りない……", [{ label: "戻る", onClick: backToField }]);
+    return;
+  }
+  STATE.player.gold -= cost;
+  STATE.chapter2.depressionMode = false;
+  saveGame(STATE);
+  const learnedDribble = STATE.player.learnedSkills.includes(CHAPTER2.skillDepressionDribble.id);
+  showOverlay(`<div class="dialog"><p>「セバスチャン先生の治療を受けた！」
+「うつ病モードが解除された！」${learnedDribble ? "\n「鬱病ドリブルが使用可能になった！」" : ""}</p>
+    <div class="choices"><button id="sebOk">……</button></div></div>`);
+  document.getElementById("sebOk").onclick = () => {
+    if (!STATE.chapter2.sebastianFirstTreatmentDone) {
+      STATE.chapter2.sebastianFirstTreatmentDone = true;
+      saveGame(STATE);
+      showSebastianKusaSoccerAdvice();
+    } else {
+      hideOverlay();
+      backToField();
+    }
+  };
+}
+
+function showSebastianKusaSoccerAdvice() {
+  showOverlay(`<div class="dialog"><p>セバスチャン先生：「よし。もう大丈夫だ。」
+「ただ、本当に戻ったかどうかはボールを蹴ってみないと分からない。」
+「草サッカーでもして、調子を見てこい。」</p>
+    <div class="choices"><button id="sebAdviceOk">……</button></div></div>`);
+  document.getElementById("sebAdviceOk").onclick = () => {
+    STATE.chapter2.objective = "草サッカーに参加する";
+    STATE.chapter2.awaitingPoliceKusaSoccer = true;
+    saveGame(STATE);
+    hideOverlay();
+    backToField();
+  };
+}
+
 // ---------- 第2章：整体バトル ----------
 // 通常フィールドのモンスターの代わりに「患者」が敵として出現する、通常RPG戦闘
 // （BattleController）と同じ構造の専用バトル。患者を倒す表現は必ず「こらしめた」。
 function enterMassageBattleJob() {
+  // うつ病モード中に初めてアルバイトへ来ると、整体院の先輩からセバスチャン先生を
+  // 紹介されるイベントが一度だけ挟まる
+  if (STATE.chapter2.depressionMode && !STATE.chapter2.seniorEventShown) {
+    showSeniorSebastianIntro();
+    return;
+  }
   // プロローグの整体ポイントがあれば、初回だけ整体スキルの初期値にボーナス反映する
   if (!STATE.chapter2.seitaiSkillSeeded) {
     STATE.player.seitaiSkill = (STATE.player.seitaiSkill || 0) + (STATE.player.seitaiPoint || 0);
@@ -1130,6 +1216,13 @@ function startPracticeMatch() {
     document.getElementById("soccerControls").style.display = "none";
     hideSoccerSkillButtons();
     MATCH = null;
+    // セバスチャン先生の助言で参加した草サッカーの直後だけ、警察の聞き込みへつながる
+    if (STATE.chapter2.awaitingPoliceKusaSoccer) {
+      STATE.chapter2.awaitingPoliceKusaSoccer = false;
+      saveGame(STATE);
+      showPoliceInterrogation();
+      return;
+    }
     showOverlay(`<div class="dialog"><p>${isKusa ? "草サッカー" : "練習試合"}が終わった。
 田辺 ${evalResult.goals} - ${evalResult.conceded} 相手</p>
       <div class="choices"><button id="pmOk">OK</button></div></div>`);
@@ -1140,39 +1233,148 @@ function startPracticeMatch() {
 }
 
 // ---------- 第2章：悪徳整体師逮捕・警察逃走ダンジョン・エンディング ----------
-function checkMasseurArrestTrigger() {
-  if (!STATE.chapter2.masseurArrested && STATE.chapter2.massageWorkCount >= CHAPTER2.massageWorkCountForArrest) {
-    showMasseurArrestEvent();
-    return true;
-  }
-  return false;
-}
-
-function showMasseurArrestEvent() {
+// 草サッカー（セバスチャン先生の助言で参加した1試合）の直後、警察の聞き込みが入る。
+function showPoliceInterrogation() {
   hideOverlay();
-  showOverlay(`<div class="dialog"><p>ある日、整体院に警察が踏み込んできた。
-「この整体師、無資格営業と悪質な高額商法の疑いです！」
-世話になっていた整体師は、そのまま連行されていった。
-突然の出来事に、田辺はパニックになって走り出した――。</p>
-    <div class="choices"><button id="arrestOk">逃げる！</button></div></div>`);
-  document.getElementById("arrestOk").onclick = () => {
-    STATE.chapter2.masseurArrested = true;
-    saveGame(STATE);
-    hideOverlay();
-    enterPoliceDungeon();
+  showOverlay(`<div class="dialog"><p>警察：「田辺さんですね？」</p>
+    <div class="choices"><button id="pi1">……</button></div></div>`);
+  document.getElementById("pi1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「はい。」</p>
+      <div class="choices"><button id="pi2">……</button></div></div>`);
+    document.getElementById("pi2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>警察：「少しお話を聞かせてもらえますか。」
+「あなたが働いている整体院についてです。」
+「高額なマットや枕を販売していましたね？」</p>
+        <div class="choices"><button id="pi3">……</button></div></div>`);
+      document.getElementById("pi3").onclick = () => {
+        showOverlay(`<div class="dialog"><p>田辺：「売ってました。」</p>
+          <div class="choices"><button id="pi4">……</button></div></div>`);
+        document.getElementById("pi4").onclick = () => {
+          showOverlay(`<div class="dialog"><p>警察：「…………。」
+「悪徳整体師の一味はお前か！」</p>
+            <div class="choices"><button id="pi5">……</button></div></div>`);
+          document.getElementById("pi5").onclick = () => {
+            showOverlay(`<div class="dialog"><p><b>田辺：「違います！！」</b></p>
+              <div class="choices"><button id="pi6">……</button></div></div>`);
+            document.getElementById("pi6").onclick = () => {
+              if (STATE.chapter2.patientsDefeatedCount > 0) {
+                showOverlay(`<div class="dialog"><p>警察：「お前が何人ものお年寄りをこらしめていたことも分かっている！」</p>
+                  <div class="choices"><button id="pi7">……</button></div></div>`);
+                document.getElementById("pi7").onclick = () => {
+                  showOverlay(`<div class="dialog"><p><b>田辺：「言い方がおかしい！！」</b></p>
+                    <div class="choices"><button id="pi8">逃げる！</button></div></div>`);
+                  document.getElementById("pi8").onclick = () => { hideOverlay(); startPoliceChase(); };
+                };
+              } else {
+                showOverlay(`<div class="dialog"><p><b>🚨「警察から逃げろ！」</b></p>
+                  <div class="choices"><button id="pi8b">逃げる！</button></div></div>`);
+                document.getElementById("pi8b").onclick = () => { hideOverlay(); startPoliceChase(); };
+              }
+            };
+          };
+        };
+      };
+    };
   };
 }
 
-function enterPoliceDungeon() {
-  if (CH2TIMER) CH2TIMER.pause();
-  playBGM("bgm_dungeon");
-  STATE.position = { map: "policeDungeon", x: 4, y: 14 };
-  saveGame(STATE);
-  enterField();
+// 専用の逃走アクションゲーム。通常RPG戦闘は使わない。警官に触れられたら逮捕、
+// 出口に到達できれば逃走成功。マップ・人数・速度はCHAPTER2.policeChaseで調整可能。
+class PoliceChase {
+  constructor(canvas, state, onEnd) {
+    this.canvas = canvas; this.ctx = canvas.getContext("2d");
+    this.state = state; this.onEnd = onEnd;
+    this.W = canvas.width; this.H = canvas.height;
+    const cfg = CHAPTER2.policeChase;
+    this.player = { x: this.W / 2, y: this.H - 60, speed: cfg.playerSpeed };
+    this.exit = { x: this.W / 2, y: 44, r: 32 };
+    this.cops = [];
+    for (let i = 0; i < cfg.copCount; i++) {
+      this.cops.push({ x: 30 + i * (this.W - 60) / Math.max(1, cfg.copCount - 1), y: this.H * 0.4, speed: cfg.copSpeed });
+    }
+    this.keys = {};
+    this.keyDown = (e) => { this.keys[e.key] = true; };
+    this.keyUp = (e) => { this.keys[e.key] = false; };
+    this.ended = false;
+  }
+  enable() { document.addEventListener("keydown", this.keyDown); document.addEventListener("keyup", this.keyUp); this.interval = setInterval(() => this.tick(), 1000 / 30); }
+  disable() { document.removeEventListener("keydown", this.keyDown); document.removeEventListener("keyup", this.keyUp); clearInterval(this.interval); }
+  setKey(key, val) { this.keys[key] = val; }
+  tick() {
+    if (this.ended) return;
+    let dx = 0, dy = 0;
+    if (this.keys["ArrowLeft"]) dx--; if (this.keys["ArrowRight"]) dx++;
+    if (this.keys["ArrowUp"]) dy--; if (this.keys["ArrowDown"]) dy++;
+    if (dx || dy) {
+      const n = Math.hypot(dx, dy) || 1;
+      this.player.x = Math.max(10, Math.min(this.W - 10, this.player.x + dx / n * this.player.speed));
+      this.player.y = Math.max(10, Math.min(this.H - 10, this.player.y + dy / n * this.player.speed));
+    }
+    this.cops.forEach((cop) => {
+      const ang = Math.atan2(this.player.y - cop.y, this.player.x - cop.x);
+      cop.x += Math.cos(ang) * cop.speed;
+      cop.y += Math.sin(ang) * cop.speed;
+      if (Math.hypot(cop.x - this.player.x, cop.y - this.player.y) < 16) this.finish(false);
+    });
+    if (!this.ended && Math.hypot(this.player.x - this.exit.x, this.player.y - this.exit.y) < this.exit.r) this.finish(true);
+    this.render();
+  }
+  finish(escaped) {
+    if (this.ended) return;
+    this.ended = true;
+    this.disable();
+    this.onEnd(escaped);
+  }
+  render() {
+    const c = this.ctx;
+    c.fillStyle = "#1b1e24"; c.fillRect(0, 0, this.W, this.H);
+    c.fillStyle = "rgba(80,200,120,.45)";
+    c.beginPath(); c.arc(this.exit.x, this.exit.y, this.exit.r, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#ffe082"; c.font = "bold 13px sans-serif"; c.textAlign = "center";
+    c.fillText("出口", this.exit.x, this.exit.y - this.exit.r - 8);
+    c.fillStyle = "#42a5f5"; c.beginPath(); c.arc(this.player.x, this.player.y, 10, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#e53935";
+    this.cops.forEach((cop) => { c.beginPath(); c.arc(cop.x, cop.y, 10, 0, Math.PI * 2); c.fill(); });
+  }
 }
 
-function onPoliceEscape() {
-  FIELD.disable();
+function startPoliceChase() {
+  playBGM("bgm_dungeon");
+  canvas.style.display = "block";
+  const chase = new PoliceChase(canvas, STATE, (escaped) => {
+    canvas.style.display = "none";
+    CHASE = null;
+    if (escaped) onPoliceChaseEscape(); else onPoliceChaseCaught();
+  });
+  CHASE = chase;
+  chase.enable();
+}
+
+// 捕まった場合：中間エンディング「臭い飯」
+function onPoliceChaseCaught() {
+  STATE.chapter2.masseurArrested = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p><b>タナベッカムは捕まった……。</b></p>
+    <div class="choices"><button id="caughtOk">……</button></div></div>`);
+  document.getElementById("caughtOk").onclick = () => {
+    STATE.chapter2.stinkyRiceEndingReached = true;
+    saveGame(STATE);
+    showEndingRoll("ENDING「臭い飯」", `
+      <p>――数年後。</p>
+      <p>田辺：「今日も臭い飯か……。」</p>
+    `, () => {
+      showOverlay(`<div class="dialog"><p>中間エンディングを達成しました！</p>
+        <div class="choices"><button id="stinkyRiceBackOk">逃走の直前に戻る</button></div></div>`);
+      document.getElementById("stinkyRiceBackOk").onclick = () => {
+        hideOverlay();
+        startPoliceChase();
+      };
+    });
+  };
+}
+
+// 逃げ切った場合：スペインオファー→第2章クリアへ本編続行
+function onPoliceChaseEscape() {
   STATE.chapter2.policeDungeonCleared = true;
   saveGame(STATE);
   showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}<p><b>タナベッカムは逃げ切った！</b></p><div class="choices"><button id="escapeOk">……</button></div></div>`);
@@ -1180,16 +1382,44 @@ function onPoliceEscape() {
 }
 
 function showSpainOfferEvent() {
-  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>田辺は一人になった。
-サッカーでも居場所はなく、頼っていた整体師も逮捕され、どん底の状態だった。
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>外国人：「タナベッカム？」</p>
+    <div class="choices"><button id="spain1">……</button></div></div>`);
+  document.getElementById("spain1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「はい。」</p>
+      <div class="choices"><button id="spain2">……</button></div></div>`);
+    document.getElementById("spain2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>外国人：「ベッカムの……？」</p>
+        <div class="choices"><button id="spain3">……</button></div></div>`);
+      document.getElementById("spain3").onclick = () => {
+        showOverlay(`<div class="dialog"><p>田辺：「違います。」
 
-そこへ一本の電話が鳴る。
-「もしもし……こちら、スペイン2部リーグのクラブです。」</p>
-    <div class="choices"><button id="spainOk">……</button></div></div>`);
-  document.getElementById("spainOk").onclick = () => {
-    STATE.chapter2.cleared = true;
-    saveGame(STATE);
-    showChapter2ClearedTitle();
+外国人：「…………。」</p>
+          <div class="choices"><button id="spain4">……</button></div></div>`);
+        document.getElementById("spain4").onclick = () => {
+          showOverlay(`<div class="dialog"><p>外国人：「でも、お前……よく走るな。」
+「それに、人の身体も見られる。」
+「スペインでサッカーをやらないか？」</p>
+            <div class="choices"><button id="spain5">……</button></div></div>`);
+          document.getElementById("spain5").onclick = () => {
+            showOverlay(`<div class="dialog"><p>外国人：「お前は何ができる？」</p>
+              <div class="choices"><button id="spain6">……</button></div></div>`);
+            document.getElementById("spain6").onclick = () => {
+              showOverlay(`<div class="dialog"><p><b>田辺：「走れます。」
+「あと、人の身体を見ます。」</b></p>
+                <div class="choices"><button id="spainOk">……</button></div></div>`);
+              document.getElementById("spainOk").onclick = () => {
+                STATE.chapter2.cleared = true;
+                if (!STATE.player.titles.includes(CHAPTER2.titles.worldFirst)) {
+                  STATE.player.titles.push(CHAPTER2.titles.worldFirst);
+                }
+                saveGame(STATE);
+                showChapter2ClearedTitle();
+              };
+            };
+          };
+        };
+      };
+    };
   };
 }
 
@@ -1200,11 +1430,14 @@ function showChapter2ClearedTitle() {
     <p><b>タナベッカムの不遇</b>
 第2章 Ver.0.1
 
-CHAPTER 2 CLEAR「天罰、ベンチ、そしてスペインへ」
+こうしてタナベッカムはスペインへ渡った。
+世界初――「整体師兼サッカー見習い」が誕生した。
+
+CHAPTER 2 CLEAR
 第3章「スペイン編」へ続く……</p>
     <div class="choices"><button id="ch2ClearReview">記録を見る</button><button id="ch2NewGame">最初から遊ぶ</button></div></div>`);
   document.getElementById("ch2ClearReview").onclick = () => {
-    showChoices(`第2章記録\n試合数:${c2.matchCount} 昇格:${c2.promoted ? "○" : "×"}\n称号:${STATE.player.titles.join("、") || "なし"}\n呪いレベル:${c2.curseLevel} お祓い回数:${c2.exorcismCount}\nサイドバック経験値:${c2.sideBackExperience} 整体バイト回数:${c2.massageWorkCount}`,
+    showChoices(`第2章記録\n試合数:${c2.matchCount} 昇格:${c2.promoted ? "○" : "×"}\n称号:${STATE.player.titles.join("、") || "なし"}\n呪いレベル:${c2.curseLevel} お祓い回数:${c2.exorcismCount}\nサイドバック経験値:${c2.sideBackExperience}\n整体スキル:${STATE.player.seitaiSkill} 販売スキル:${STATE.player.salesSkill}\nこらしめた患者数:${c2.patientsDefeatedCount}`,
       [{ label: "戻る", onClick: showChapter2ClearedTitle }]);
   };
   document.getElementById("ch2NewGame").onclick = () => {
@@ -1504,7 +1737,6 @@ function enterField() {
     onMainHall: (id) => onMainHall(id),
     onShaolinBoss: (boss) => onShaolinBoss(boss),
     onShaolinSensei: (id) => onShaolinSensei(id),
-    onPoliceEscape: () => onPoliceEscape(),
   });
   FIELD.enable();
   FIELD.render();
@@ -1518,6 +1750,7 @@ function enterBuilding(building) {
   else if (building.id === "tavern") openTavern();
   else if (building.id === "jobcenter") openJobCenter();
   else if (building.id === "house_interior") showHomeInterior();
+  else if (building.id === "sebastian_clinic") enterSebastianClinic();
 }
 
 // 自宅の庭から「家の中へ」で、冒頭で母と話した室内の絵にいつでも戻れるようにする
@@ -1943,10 +2176,12 @@ function setupTouchControls() {
     bind(`btn-${dir}`,
       () => {
         if (MATCH) MATCH.setKey(dirKey[dir], true);
+        else if (CHASE) CHASE.setKey(dirKey[dir], true);
         else if (FIELD) FIELD.setKey(dir, true);
       },
       () => {
         if (MATCH) MATCH.setKey(dirKey[dir], false);
+        else if (CHASE) CHASE.setKey(dirKey[dir], false);
         else if (FIELD) FIELD.setKey(dir, false);
       }
     );

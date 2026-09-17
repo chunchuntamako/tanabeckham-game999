@@ -22,14 +22,9 @@ const ENEMIES = {
 
   // 第2章：神社奥のボス。CHAPTER2.godBossの数値をそのまま使う（調整はchapter2.js側で行う）
   god: Object.assign({ sprite: "assets/bosses/god.png" }, CHAPTER2.godBoss),
-
-  // 第2章：警察逃走ダンジョン。コミカル表現限定（死亡・重傷描写はしない）。金品は奪わない。
-  police1: { name: "警察官A", hp: 16, atk: 5, def: 2, exp: 10, gold: 0, sprite: "assets/enemies/police1.png" },
-  police2: { name: "警察官B", hp: 20, atk: 6, def: 3, exp: 12, gold: 0, sprite: "assets/enemies/police2.png" },
 };
 
 const ENCOUNTER_TABLES = {
   field: ["slime", "dog", "ballmon"],
   dungeon: ["dungeon1", "dungeon2"],
-  police: ["police1", "police2"],
 };

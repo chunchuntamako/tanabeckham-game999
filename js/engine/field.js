@@ -45,6 +45,9 @@ const MAPS = {
       { x: 6, y: 6, id: "itemshop", name: "道具屋" },
       { x: 2, y: 9, id: "tavern", name: "酒場" },
       { x: 6, y: 9, id: "inn", name: "宿屋" },
+      // 第2章：整体院の先輩から紹介されるまでは出現しない
+      { x: 4, y: 9, id: "sebastian_clinic", name: "セバスチャン診療所",
+        requires: (state) => !!(state.chapter2 && state.chapter2.sebastianUnlocked) },
     ],
     encounter: null,
   },
@@ -105,16 +108,6 @@ const MAPS = {
     ],
     sensei: { x: 4, y: 1, id: "sasaki_sv", label: "佐々木SV",
       requires: (state) => !!(state.chapter2 && state.chapter2.shaolinKeizoDefeated && !state.chapter2.shaolinQuizDone) },
-  },
-  // 第2章：警察逃走ダンジョン。通常のダンジョンとして実装し、出口到達で
-  // 逃走成功イベント（onPoliceEscape）に直接つながる特殊出口を使う。
-  policeDungeon: {
-    name: "警察包囲網",
-    bg: "assets/maps/police_dungeon.png?v=1",
-    bgm: "bgm_dungeon",
-    w: 9, h: 16,
-    exits: [{ x: 4, y: 1, to: "__police_escape__", label: "出口" }],
-    encounter: { table: "police", rate: CHAPTER2.policeDungeonEncounterRate },
   },
 };
 
@@ -266,10 +259,6 @@ class FieldController {
   onEnterTile(nx, ny, map) {
     const exit = (map.exits || []).find(ex => ex.x === nx && ex.y === ny && (!ex.requires || ex.requires(this.state)));
     if (exit) {
-      if (exit.to === "__police_escape__") {
-        if (this.cb.onPoliceEscape) this.cb.onPoliceEscape();
-        return;
-      }
       this.state.position.map = exit.to;
       this.state.position.x = exit.tx;
       this.state.position.y = exit.ty;
@@ -279,7 +268,7 @@ class FieldController {
       if (exit.to === "practice" && this.cb.onEnterPractice) this.cb.onEnterPractice();
       return;
     }
-    const building = (map.buildings || []).find(b => b.x === nx && b.y === ny);
+    const building = (map.buildings || []).find(b => b.x === nx && b.y === ny && (!b.requires || b.requires(this.state)));
     if (building) { this.cb.onEnterBuilding(building); return; }
     if (map.boss && map.boss.x === nx && map.boss.y === ny && !this.state.flags.seitaiDefeated) {
       this.cb.onBoss(map.boss.id); return;
@@ -373,7 +362,7 @@ class FieldController {
     ctx.fillText(map.name, 16, 29);
 
     (map.exits || []).filter(ex => !ex.requires || ex.requires(this.state)).forEach(ex => this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)"));
-    (map.buildings || []).forEach(b => this.marker(b.x, b.y, tw, th, cameraY, b.name, "rgba(240,170,40,.90)"));
+    (map.buildings || []).filter(b => !b.requires || b.requires(this.state)).forEach(b => this.marker(b.x, b.y, tw, th, cameraY, b.name, "rgba(240,170,40,.90)"));
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
     if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken) this.marker(map.chest.x, map.chest.y, tw, th, cameraY, map.chest.label || "宝箱", "rgba(230,200,60,.92)");

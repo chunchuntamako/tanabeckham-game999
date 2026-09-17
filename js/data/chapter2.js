@@ -97,16 +97,21 @@ const CHAPTER2 = {
       immune: true, weakSpots: [], sellBonus: true, attackLines: ["早く帰りたいんじゃが……"] },
   ],
 
-  // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
-  policeDungeonEncounterRate: 0.28,
+  // セバスチャン先生の治療費（うつ病モード解除）。何度でも払って治療できる。
+  sebastianTreatmentCost: 500,
 
-  // 整体師アルバイトを何回こなすと悪徳整体師が逮捕されるか
-  massageWorkCountForArrest: 5,
+  // 警察逃走アクションゲームの調整用定数（マップ・人数・速度）
+  policeChase: {
+    copCount: 3,
+    copSpeed: 1.7,
+    playerSpeed: 2.6,
+  },
 
   // 第2章で新設する隠し称号
   titles: {
     god: "バロンドールタナベ",
     poop: "うんこまん",
+    worldFirst: "世界初・整体師兼サッカー見習い",
   },
 
   // 少林寺で習得できる必殺技。1試合サイクルにつき1回しか使えない
@@ -203,9 +208,14 @@ const CHAPTER2 = {
     seitaiEndingReached: false, // 整体師中間エンディングに到達したか
     dismissedFromClub: false,   // FC山陽TIGAKUを解雇されたか（練習試合→草サッカーの呼称もこれで切り替え）
     depressionMode: false,      // true の間、通常シュート不発・少林シュート/鬱病ドリブル使用不可
+    seniorEventShown: false,    // 整体院の先輩イベント（セバスチャン先生の紹介）を見たか
+    sebastianUnlocked: false,   // セバスチャン診療所（町）が出現しているか
+    sebastianFirstTreatmentDone: false, // 初回の治療を終え、草サッカーへの助言を見たか
+    awaitingPoliceKusaSoccer: false,    // 次の草サッカー終了後に警察イベントを発生させるか
 
     // --- 逮捕・逃走 ---
     masseurArrested: false,
     policeDungeonCleared: false,
+    stinkyRiceEndingReached: false, // 中間エンディング「臭い飯」に到達したか
   },
 };
