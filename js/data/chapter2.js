@@ -103,6 +103,14 @@ const CHAPTER2 = {
     poop: "うんこまん",
   },
 
+  // 少林寺で習得できる必殺技。1試合サイクルにつき1回しか使えない
+  // （アップエリアでのアピール使用と、試合中の使用は同じフラグを共有する）
+  skillShaolinShoot: {
+    id: "shaolin_shoot",
+    name: "少林シュート",
+    successRate: 0.85,
+  },
+
   storyFlagsDefault: {
     // --- 基本進行 ---
     started: false,
@@ -136,8 +144,16 @@ const CHAPTER2 = {
     matchCountAtHiguchiJoin: 0,    // ヒグチビッチ加入時点のmatchCount（昇格までの試合数カウント用）
     higuchiDebutDone: false,       // ヒグチビッチ加入後の初戦（完全ベンチ確定）を消化したか
     higuchiDebutMomShown: false,   // 初戦後の母イベント（練習して出場のチャンスをつかもう）を見たか
-    dungeonEventDone: false,       // 中盤ダンジョンの仮イベントを消化したか
-    promotionReady: false,         // trueになった次の試合終了でJ1昇格イベントが発生する
+    shaolinIdeaShown: false,       // 「少林寺に修行に行こう！」を思い立ったか
+    shaolinUnlocked: false,        // fieldマップに少林寺への出口が出ているか
+    shaolinIssyDefeated: false,    // 少林寺ボス1：いっしーを撃破したか
+    shaolinTanakaDefeated: false,  // 少林寺ボス2：詐欺師田中を撃破したか
+    shaolinKeizoDefeated: false,   // 少林寺ボス3：ケイゾウを撃破したか
+    shaolinQuizDone: false,        // 佐々木SVの4択に回答済みか（正誤問わず一度きり、再挑戦不可）
+    shaolinShotUsedThisMatch: false, // 少林シュートをこの試合サイクルで使用済みか（アピール使用と本番使用で共有）
+    promotionDeciderPending: false, // 現在の試合サイクルが昇格決定戦かどうか
+    promotionDeciderMatch: false,   // 昇格決定戦で田辺が実際にピッチに立っている間だけtrue
+    promotionReady: false,         // trueになった次の試合終了でJ1昇格イベント（昇格決定戦）が発生する
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,

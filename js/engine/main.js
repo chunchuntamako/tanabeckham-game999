@@ -325,6 +325,7 @@ function finishChapter2Match(evalResult) {
       (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
     if (dismiss) { showManagerDismissalEvent(); return; }
     if (checkPromotionTrigger()) return;
+    if (STATE.chapter2.benchMode && STATE.chapter2.higuchiDebutDone && !STATE.chapter2.shaolinIdeaShown) { showShaolinIdeaEvent(); return; }
     if (checkCurseSuspicionTrigger()) return;
     if (checkJ1BenchTrigger()) return;
     if (STATE.chapter2.matchCount === 1 && !STATE.chapter2.momErrandShown) { showMomErrandEvent(); return; }
@@ -363,7 +364,11 @@ function showManagerDismissalEvent() {
 }
 
 function showHiguchiArrivalEvent() {
-  showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>新監督：「今日から、ヒグチビッチをレギュラーにする。」
+  showOverlay(`<div class="dialog"><p>新監督：「今日からこのチームを指揮する。」
+「それと、新しい選手を紹介する。」</p>
+    <div class="choices"><button id="higuchiOk0">……</button></div></div>`);
+  document.getElementById("higuchiOk0").onclick = () => {
+    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>ヒグチビッチ：「よろしく。」
 
 颯爽と現れたヒグチビッチは、シュート・ドリブル・パスすべてが田辺を圧倒していた。</p>
     <div class="choices"><button id="higuchiOk1">……</button></div></div>`);
@@ -390,6 +395,7 @@ function showHiguchiArrivalEvent() {
         };
       };
     };
+  };
   };
 }
 
@@ -719,13 +725,33 @@ function showHiguchiDebutMomEvent() {
   STATE.chapter2.higuchiDebutMomShown = true;
   STATE.chapter2.objective = "練習して出場のチャンスをつかもう";
   saveGame(STATE);
-  showOverlay(`<div class="dialog"><p>母：「今日はベンチだったのね……。」
-母：「腐らずに、練習してチャンスを待ちましょう。」</p>
+  showOverlay(`<div class="dialog"><p>母：「すごい選手が入ってきたんだってね。」
+「田辺もちゃんと練習しないと、試合に出られないよ。」</p>
     <div class="choices"><button id="higuchiMomOk">OK</button></div></div>`);
   document.getElementById("higuchiMomOk").onclick = () => {
     hideOverlay();
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
+  };
+}
+
+// ヒグチビッチとの実力差を痛感し、少林寺修行を思い立つきっかけイベント。
+// ヒグチビッチ加入後、実際に途中出場した試合の直後に一度だけ発火する。
+function showShaolinIdeaEvent() {
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}<p>田辺：「……このままじゃダメだ！」</p>
+    <div class="choices"><button id="shaolinIdeaOk1">……</button></div></div>`);
+  document.getElementById("shaolinIdeaOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「よし、少林寺に修行に行こう！」</p>
+      <div class="choices"><button id="shaolinIdeaOk2">……</button></div></div>`);
+    document.getElementById("shaolinIdeaOk2").onclick = () => {
+      STATE.chapter2.shaolinIdeaShown = true;
+      STATE.chapter2.shaolinUnlocked = true;
+      STATE.chapter2.objective = "少林寺で修行しよう";
+      saveGame(STATE);
+      hideOverlay();
+      FIELD && FIELD.enable();
+      if (CH2TIMER) CH2TIMER.resume();
+    };
   };
 }
 

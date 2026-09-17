@@ -26,6 +26,9 @@ const MAPS = {
       // 第2章：母のお使いイベント（1試合目終了後）で解放されるまで入口自体が出ない
       { x: 2, y: 2, to: "shrine", tx: 4, ty: 15, label: "神社",
         requires: (state) => !!(state.chapter2 && state.chapter2.shrineUnlocked) },
+      // 第2章：ヒグチビッチとの実力差を痛感して少林寺行きを思い立った後に解放される
+      { x: 1, y: 9, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
+        requires: (state) => !!(state.chapter2 && state.chapter2.shaolinUnlocked) },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -82,6 +85,16 @@ const MAPS = {
     mainHall: { x: 4, y: 3, id: "shrine_main_hall", label: "本殿" },
     // 第2次神社クエスト「お祓い」。curseSuspicionRaisedになるまでは出現しない。
     altar: { x: 6, y: 8, id: "exorcism_altar", label: "お祓い" },
+    encounter: null,
+  },
+  // 第2章：少林寺。3人のボスを順番に倒し、佐々木SVの4択に挑む修行の場（詳細は段階8で実装）。
+  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  shaolin: {
+    name: "少林寺",
+    bg: "assets/maps/shaolin_map.png?v=1",
+    bgm: "bgm_dungeon",
+    w: 9, h: 16,
+    exits: [{ x: 4, y: 15, to: "field", tx: 1, ty: 9, label: "戻る" }],
     encounter: null,
   },
   // 第2章：警察逃走ダンジョン。通常のダンジョンとして実装し、出口到達で
