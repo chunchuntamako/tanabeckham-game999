@@ -1,6 +1,11 @@
 // ===== セーブ/ロード管理 =====
+// v2: 第2章後半（J1〜J2〜整体バトル〜人生分岐〜警察逃走〜スペイン編）の新規state
+// 追加に伴いバージョンを更新。defaultSaveData()のchapter2はCHAPTER2.storyFlagsDefault
+// を丸ごと展開しているため、新規フラグはここを個別に触らなくても自動的に載る。
+// normalizeSaveData()のmergeObjectが新旧差分を吸収するので、将来セーブを再度有効化
+// した際も既存セーブとの互換マイグレーションは追加コード不要で成立する。
 const SAVE_KEY = "tanabeckham_save_v1";
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 
 function defaultSaveData() {
   return {
