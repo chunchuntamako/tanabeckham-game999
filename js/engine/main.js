@@ -489,12 +489,12 @@ function showHiguchiArrivalEvent() {
 「それと、新しい選手を紹介する。」</p>
     <div class="choices"><button id="higuchiOk0">……</button></div></div>`);
   document.getElementById("higuchiOk0").onclick = () => {
-    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>ヒグチビッチ：「よろしく。」
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_join.jpg")}<p>ヒグチビッチ：「よろしく。」
 
 颯爽と現れたヒグチビッチは、シュート・ドリブル・パスすべてが田辺を圧倒していた。</p>
     <div class="choices"><button id="higuchiOk1">……</button></div></div>`);
   document.getElementById("higuchiOk1").onclick = () => {
-    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>田辺：「これで昇格できますね！」</p>
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_join.jpg")}<p>田辺：「これで昇格できますね！」</p>
       <div class="choices"><button id="higuchiOk2">……</button></div></div>`);
     document.getElementById("higuchiOk2").onclick = () => {
       showOverlay(`<div class="dialog"><p>新監督：「次の試合、ヒグチビッチはトップ下。」</p>
@@ -647,7 +647,7 @@ function finishPromotionDeciderMatch(evalResult) {
 「交代！」</p>
     <div class="choices"><button id="pdMatch1">……</button></div></div>`);
   document.getElementById("pdMatch1").onclick = () => {
-    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>ピッチに戻ったヒグチビッチが、独りでゴールへ向かって走り出す。
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_join.jpg")}<p>ピッチに戻ったヒグチビッチが、独りでゴールへ向かって走り出す。
 一人、また一人とかわし、最後は迷いなく蹴り込んだ。</p>
       <div class="choices"><button id="pdMatch2">……</button></div></div>`);
     document.getElementById("pdMatch2").onclick = () => {
@@ -685,7 +685,7 @@ function showPromotionCelebration() {
   showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU J1昇格決定！！</b></p>
     <div class="choices"><button id="celebOk1">……</button></div></div>`);
   document.getElementById("celebOk1").onclick = () => {
-    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>選手たちがヒグチビッチのもとへ駆け寄り、宙へ何度も放り投げる。
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_join.jpg")}<p>選手たちがヒグチビッチのもとへ駆け寄り、宙へ何度も放り投げる。
 
 タナベッカムは、ベンチから胴上げを見つめていた。</p>
       <div class="choices"><button id="celebOk2">……</button></div></div>`);
