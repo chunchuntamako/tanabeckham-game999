@@ -145,6 +145,7 @@ const CHAPTER2 = {
     matchCountAtJ1Start: 0,   // J1開始時点のmatchCount（お祓い誘発までの試合数カウント用）
     curseSuspicionRaised: false, // 「まだ呪われてるんじゃない？」の空気が立った後trueに
     cleared: false,           // 第2章クリア
+    matchDuePending: false,   // 公式戦の時間になったが、まだスタジアムへ入っていない
 
     // --- 神社①・神・天罰 ---
     shrineUnlocked: false,

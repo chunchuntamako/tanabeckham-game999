@@ -202,19 +202,43 @@ function resumeChapter2() {
   else CH2TIMER.resume();
 }
 
+// タイマーが切れた瞬間の合図。ここではまだ試合を始めない
+// （スタジアムの建物へ実際に入るまで保留にする。onEnterBuilding側のenterStadium参照）。
 function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
-  FIELD && FIELD.disable();
   const c2 = STATE.chapter2;
   c2.shaolinShotUsedThisMatch = false;
   // J2降格後は「今日は公式戦の日のはずが、ベンチ入りすらしていない」を一度だけ見せて
-  // 無所属イベントへ進む。以降、通常の公式戦サイクルはこの章では再開しない。
+  // 無所属イベントへ進む。以降、通常の公式戦サイクルはこの章では再開しない
+  // （スタジアムへ向かう前提自体が崩れているため、プレイヤーの位置に関わらず発生させる）。
   if (c2.j2Mode && !c2.j2OpeningShown) {
+    FIELD && FIELD.disable();
     c2.j2OpeningShown = true;
     saveGame(STATE);
     showJ2OpeningEvent();
     return;
   }
+  c2.matchDuePending = true;
+  saveGame(STATE);
+  if (FIELD) FIELD.render();
+}
+
+// スタジアムの建物に入った時に呼ばれる。公式戦の時間でなければ何も起きない。
+function enterStadium() {
+  FIELD.disable();
+  if (!STATE.chapter2.matchDuePending) {
+    showChoices("スタジアム：まだ次の試合まで時間がありそうだ。", [
+      { label: "戻る", onClick: backToField },
+    ]);
+    return;
+  }
+  STATE.chapter2.matchDuePending = false;
+  saveGame(STATE);
+  startMatchDueFlow();
+}
+
+function startMatchDueFlow() {
+  const c2 = STATE.chapter2;
   // 佐々木SVの4択を終えた（promotionReady成立後の）次の公式戦は、必ず昇格決定戦になる
   if (c2.higuchibitchJoined && !c2.promoted && c2.promotionReady) {
     c2.promotionDeciderPending = true;
@@ -1751,6 +1775,20 @@ function enterBuilding(building) {
   else if (building.id === "jobcenter") openJobCenter();
   else if (building.id === "house_interior") showHomeInterior();
   else if (building.id === "sebastian_clinic") enterSebastianClinic();
+  else if (building.id === "seitai_clinic") enterSeitaiClinicBuilding();
+  else if (building.id === "stadium") enterStadium();
+}
+
+// 整体院（フィールド上の独立した建物）。整体バイトが解放済みならそのまま整体バトルへ。
+function enterSeitaiClinicBuilding() {
+  FIELD.disable();
+  if (!STATE.chapter2.massageJobUnlocked) {
+    showChoices("整体院：今は特に用事がなさそうだ。", [
+      { label: "戻る", onClick: backToField },
+    ]);
+    return;
+  }
+  enterMassageBattleJob();
 }
 
 // 自宅の庭から「家の中へ」で、冒頭で母と話した室内の絵にいつでも戻れるようにする
@@ -1885,17 +1923,16 @@ function mulberry32(a) {
 }
 
 // ---------- 職業安定所 ----------
+// 整体師のアルバイトは、フィールド上の独立した「整体院」の建物から直接始める
+// （enterSeitaiClinicBuilding）ため、職業安定所には出さない。
 function openJobCenter() {
-  const massageAvailable = STATE.chapter2 && STATE.chapter2.massageJobUnlocked;
   let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/jobcenter.png")}><p>職業安定所：求人を選んでください</p><ul>`;
   CHAPTER0.jobs.forEach((j, i) => { html += `<li><button data-i="${i}">${j.name}</button></li>`; });
-  if (massageAvailable) html += `<li><button id="jobMassage">整体師のアルバイト</button></li>`;
   html += `</ul><button id="closeJob">出る</button></div>`;
   showOverlay(html);
   CHAPTER0.jobs.forEach((j, i) => {
     overlay.querySelector(`[data-i="${i}"]`).onclick = () => applyJob(j);
   });
-  if (massageAvailable) document.getElementById("jobMassage").onclick = enterMassageBattleJob;
   overlay.querySelector("#closeJob").onclick = backToField;
 }
 

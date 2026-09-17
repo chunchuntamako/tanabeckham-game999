@@ -8,27 +8,37 @@ const MAPS = {
     bg: "assets/maps/field_home.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 11, label: "フィールド" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 1, ty: 9, label: "フィールド" }],
     buildings: [{ x: 4, y: 4, id: "house_interior", name: "家の中" }],
     encounter: null,
   },
+  // 2026-09-17：全体マップ画像の新デザインに合わせて再配置。ヒグさんが用意した
+  // 新しい見取り図（ダンジョン／神社／少林寺／田辺の家／町／整体院／練習場／
+  // スタジアムを1枚に収めた全体マップ）の見た目の位置に座標を合わせている。
+  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
   field: {
     name: "田辺の町・郊外",
-    bg: "assets/maps/field_route.png?v=2",
+    bg: "assets/maps/field_overworld.png?v=1",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // エリア判定だと入口がわかりづらいとのことで、扉（1マス）での移動に戻した。
     exits: [
-      { x: 4, y: 11, to: "home", tx: 4, ty: 15, label: "自宅" },
-      { x: 3, y: 6, to: "town", tx: 4, ty: 15, label: "町" },
-      { x: 7, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x: 6, y: 6, to: "practice", tx: 4, ty: 13, label: "練習場" },
+      { x: 1, y: 9, to: "home", tx: 4, ty: 15, label: "自宅" },
+      { x: 4, y: 9, to: "town", tx: 4, ty: 15, label: "町" },
+      { x: 3, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
+      { x: 2, y: 13, to: "practice", tx: 4, ty: 13, label: "練習場" },
       // 第2章：母のお使いイベント（1試合目終了後）で解放されるまで入口自体が出ない
-      { x: 2, y: 2, to: "shrine", tx: 4, ty: 15, label: "神社",
+      { x: 2, y: 4, to: "shrine", tx: 4, ty: 15, label: "神社",
         requires: (state) => !!(state.chapter2 && state.chapter2.shrineUnlocked) },
       // 第2章：ヒグチビッチとの実力差を痛感して少林寺行きを思い立った後に解放される
-      { x: 1, y: 9, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
+      { x: 6, y: 4, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
         requires: (state) => !!(state.chapter2 && state.chapter2.shaolinUnlocked) },
+    ],
+    // 整体院・スタジアムは町とは別の独立した建物としてフィールド上に直接配置する。
+    // どちらも常時見えているが、条件を満たすまでは入っても何も起きない（onEnterBuilding側で分岐）。
+    buildings: [
+      { x: 6, y: 9, id: "seitai_clinic", name: "整体院" },
+      { x: 5, y: 13, id: "stadium", name: "スタジアム" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -37,7 +47,7 @@ const MAPS = {
     bg: "assets/maps/town_map.png?v=2",
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 3, ty: 6, label: "郊外" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 9, label: "郊外" }],
     // 新しいイラストの各建物の扉の実際の位置に合わせて配置
     buildings: [
       { x: 4, y: 2, id: "jobcenter", name: "職安" },
@@ -57,7 +67,7 @@ const MAPS = {
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // 新しいイラストの入口ゲート（下部中央）の実際の位置に合わせて配置
-    exits: [{ x: 4, y: 13, to: "field", tx: 7, ty: 7, label: "戻る" }],
+    exits: [{ x: 4, y: 13, to: "field", tx: 2, ty: 13, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
@@ -66,7 +76,7 @@ const MAPS = {
     bg: "assets/maps/dungeon_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 7, ty: 1, label: "出口" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 3, ty: 1, label: "出口" }],
     encounter: { table: "dungeon", rate: 0.18 },
     // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
@@ -80,7 +90,7 @@ const MAPS = {
     bg: "assets/maps/shrine_map.png?v=1",
     bgm: "bgm_field",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 2, label: "戻る" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 4, label: "戻る" }],
     chest: { x: 4, y: 12, id: "shrine_offering", label: "賽銭箱" },
     charmShop: { x: 4, y: 8, id: "shrine_charm_shop", label: "お守り売り場" },
     mainHall: { x: 4, y: 3, id: "shrine_main_hall", label: "本殿" },
@@ -96,7 +106,7 @@ const MAPS = {
     bg: "assets/maps/shaolin_map.png?v=1",
     bgm: "bgm_dungeon",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 15, to: "field", tx: 1, ty: 9, label: "戻る" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 4, label: "戻る" }],
     encounter: null,
     bosses: [
       { x: 4, y: 11, id: "shaolin_issy", enemy: "issy", label: "いっしー", flag: "shaolinIssyDefeated",
@@ -362,7 +372,11 @@ class FieldController {
     ctx.fillText(map.name, 16, 29);
 
     (map.exits || []).filter(ex => !ex.requires || ex.requires(this.state)).forEach(ex => this.marker(ex.x, ex.y, tw, th, cameraY, ex.label || "移動", "rgba(54,162,235,.88)"));
-    (map.buildings || []).filter(b => !b.requires || b.requires(this.state)).forEach(b => this.marker(b.x, b.y, tw, th, cameraY, b.name, "rgba(240,170,40,.90)"));
+    (map.buildings || []).filter(b => !b.requires || b.requires(this.state)).forEach(b => {
+      // スタジアムは公式戦の時間になると目印を変えて知らせる
+      const pending = b.id === "stadium" && this.state.chapter2 && this.state.chapter2.matchDuePending;
+      this.marker(b.x, b.y, tw, th, cameraY, pending ? b.name + " ❗" : b.name, pending ? "rgba(210,55,45,.92)" : "rgba(240,170,40,.90)");
+    });
     if (map.boss && !this.state.flags.seitaiDefeated) this.marker(map.boss.x, map.boss.y, tw, th, cameraY, "整体師", "rgba(210,55,45,.92)");
     if (map.hiddenNpc && this.state.flags.seitaiDefeated && !this.state.hiddenEvents.mat) this.marker(map.hiddenNpc.x, map.hiddenNpc.y, tw, th, cameraY, "老人", "rgba(135,70,190,.92)");
     if (map.chest && this.state.chapter2 && !this.state.chapter2.offeringTaken) this.marker(map.chest.x, map.chest.y, tw, th, cameraY, map.chest.label || "宝箱", "rgba(230,200,60,.92)");
