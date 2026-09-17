@@ -19,6 +19,8 @@ class SoccerMatch {
     this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, tackle:false, passReq:false };
     // 昇格決定戦：途中出場中のみ使う、金縛り再発〜強制交代の一度きりのスクリプトイベント用
     this.promotionDeciderTriggered = false; this.promotionDeciderForceEndAt = null;
+    // 少林シュートを実際に使用した試合は、終了まで田辺の移動速度が50%になる
+    this.shaolinSpeedPenaltyActive = false;
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
     if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
@@ -59,6 +61,8 @@ class SoccerMatch {
     }
     if (c2 && c2.shaolinShotUsedThisMatch) { this.banner("ガッツがたりない！"); return; }
     if (c2) c2.shaolinShotUsedThisMatch = true;
+    // 使用後は試合終了まで移動速度50%（シュート自体は強力だが、足が遅くなる）
+    this.shaolinSpeedPenaltyActive = true;
     this.disable();
     showCutsceneChain([
       { cutin: "assets/cutins/tanabe_serious.png", text: "田辺の目つきが変わった。" },
@@ -161,7 +165,7 @@ class SoccerMatch {
     // 走り込み練習は基礎速度、ドリブル練習はボール保持中の速度に効く
     const runBonus=1+sk.run*.02;
     const dribbleBonus=(this.ball.owner===this.tanabe)?1+sk.dribble*.03:1;
-    const spd=this.tanabe.speed*runBonus*dribbleBonus;
+    const spd=this.tanabe.speed*runBonus*dribbleBonus*(this.shaolinSpeedPenaltyActive?0.5:1);
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
     if(!paralyzed&&!this.ball.owner&&!this.pendingGoal&&this.elapsed>=this.tanabeNoPickupUntil&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
@@ -273,7 +277,8 @@ class SoccerMatch {
       const dxe=tx-en.x,dye=ty-en.y,de=Math.hypot(dxe,dye);
       if(de>4){en.x+=dxe/de*enemySpeed;en.y+=dye/de*enemySpeed;}
       en.x=Math.max(12,Math.min(this.W-12,en.x));en.y=Math.max(15,Math.min(this.H-15,en.y));
-      const enemyPickupRadius=misfortune?13+mm.reboundToEnemyBonus*20:13;
+      let enemyPickupRadius=misfortune?13+mm.reboundToEnemyBonus*20:13;
+      if(j1)enemyPickupRadius+=jm.passInterceptBonus;
       if(!this.ball.owner&&!this.pendingGoal&&this.distTo(en,this.ball)<enemyPickupRadius){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
     });
     this.enemies.forEach(en=>{

@@ -67,8 +67,9 @@ const CHAPTER2 = {
   j1Modifier: {
     enemySpeedMultiplier: 1.15,    // J1の相手は動きが速い
     enemyShootRateBonus: 0.08,     // 相手の決定率が高い
-    playerShotChancePenalty: 0.06, // 守備が堅く、田辺のシュートが通りにくい
+    playerShotChancePenalty: 0.09, // 守備・GKが堅く、田辺のシュートが通りにくい
     tackleChancePenalty: 0.1,      // J1の相手には田辺のタックルが通用しにくい
+    passInterceptBonus: 4,         // 相手のパスカット（ルーズボール回収半径）が広い
   },
 
   // J1で何試合苦戦したら「まだ呪われてるんじゃない？」の空気になるか
@@ -157,6 +158,16 @@ const CHAPTER2 = {
     managerAppeal: 0,
     teamTrust: 50,
     defensiveContribution: 0,
+
+    // --- J1編（昇格後） ---
+    j1OpeningAnnounced: false,     // 「J1リーグ開幕」の告知を出したか（一度きり）
+    j1StruggleDigestShown: false,  // J1苦戦ダイジェスト（初戦後・呪い疑惑のきっかけ）を見たか
+    exorcismMomShown: false,       // 母から「お祓いしてきなさい」と言われたか
+    exorcismJankenDone: false,     // お祓いじゃんけん（3本勝負）を消化済みか。再挑戦はさせない
+    sidebackDecisionShown: false,  // 監督の「サイドバックでもしておけ」を見たか（一度きり）
+    sidebackFarewellMatchPending: false, // サイドバック受諾時の最後の1試合（経験値獲得用）の最中か
+    j2Mode: false,                 // J2降格後true。J1関連の演出は行わなくなる
+    j2OpeningShown: false,         // 「翌シーズン――」でベンチ入りすらしていない演出を見たか
 
     // --- お祓い・呪い ---
     curseLevel: 0,

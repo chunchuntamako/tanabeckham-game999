@@ -239,11 +239,22 @@ function onChapter2MatchDue() {
     showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
       { label: "試合に出る", onClick: showDigestMatch },
     ]);
+  } else if (c2.j1Mode && !c2.j1OpeningAnnounced) {
+    // J1初戦は告知を一度だけ挟む。通常のリアルタイム試合で、結果によって本編は分岐しない。
+    c2.j1OpeningAnnounced = true;
+    saveGame(STATE);
+    showJ1OpeningAnnounce();
   } else {
     showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
       { label: "試合に出る", onClick: startChapter2Match },
     ]);
   }
+}
+
+function showJ1OpeningAnnounce() {
+  showOverlay(`<div class="dialog"><p><b>J1リーグ開幕</b></p>
+    <div class="choices"><button id="j1OpenOk">試合に出る</button></div></div>`);
+  document.getElementById("j1OpenOk").onclick = startChapter2Match;
 }
 
 // 序盤数試合は不遇補正なし（企画仕様どおり）。SoccerMatchをそのまま流用する。
@@ -553,7 +564,7 @@ function finishPromotionDeciderMatch(evalResult) {
         STATE.chapter2.promoted = true;
         STATE.chapter2.promotionDeciderPending = false;
         saveGame(STATE);
-        showHiguchiTransferEvent();
+        showPromotionCelebration();
       };
     };
   };
@@ -569,7 +580,23 @@ function finishPromotionDeciderBenchOnly() {
     STATE.chapter2.promoted = true;
     STATE.chapter2.promotionDeciderPending = false;
     saveGame(STATE);
-    showHiguchiTransferEvent();
+    showPromotionCelebration();
+  };
+}
+
+// 昇格直後：選手たちがヒグチビッチを胴上げする。タナベッカムは参加しない。
+function showPromotionCelebration() {
+  showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU J1昇格決定！！</b></p>
+    <div class="choices"><button id="celebOk1">……</button></div></div>`);
+  document.getElementById("celebOk1").onclick = () => {
+    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>選手たちがヒグチビッチのもとへ駆け寄り、宙へ何度も放り投げる。
+
+タナベッカムは、ベンチから胴上げを見つめていた。</p>
+      <div class="choices"><button id="celebOk2">……</button></div></div>`);
+    document.getElementById("celebOk2").onclick = () => {
+      hideOverlay();
+      showHiguchiTransferEvent();
+    };
   };
 }
 
