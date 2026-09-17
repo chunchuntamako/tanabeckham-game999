@@ -463,7 +463,7 @@ function showMomErrandEvent() {
   STATE.chapter2.shrineUnlocked = true;
   STATE.chapter2.objective = "神社でお守りを買おう";
   saveGame(STATE);
-  showOverlay(`<div class="dialog"><p>母：「昨日は大活躍だったわね、すごいじゃない！」
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/mom_errand.jpg")}<p>母：「昨日は大活躍だったわね、すごいじゃない！」
 母：「今日も頑張ってね。それと、交通安全のお守りを買ってきてくれない？神社でお参りもしてきてね。」</p>
     <div class="choices"><button id="momErrandOk">わかった</button></div></div>`);
   document.getElementById("momErrandOk").onclick = () => {
@@ -1884,6 +1884,7 @@ function openInn() {
     { label: "泊まる", onClick: () => {
         STATE.player.hp = STATE.player.maxHp;
         STATE.player.stamina = STATE.player.maxStamina;
+        STATE.party.forEach(m => { if (!m.dead) m.hp = m.maxHp; });
         // 自宅へ戻さず、宿屋のあるその場（町）からそのまま再開する
         // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、
         // 日数経過の判定は使わず、代わりに次の公式戦までの時間を2分進める。
@@ -1915,7 +1916,7 @@ function openTavern() {
   // 死亡（離脱）した仲間は枠を空けるので、生存人数だけで空き枠を数える
   const aliveCount = STATE.party.filter(m => !m.dead).length;
   for (let i = 0; i < npcCount; i++) {
-    if (aliveCount + picked.length < 2 && rng() < 0.5) {
+    if (aliveCount + picked.length < CHAPTER0.maxPartySize && rng() < 0.5) {
       const cand = weightedPickCompanion(rng, STATE.party.concat(picked));
       if (cand) { picked.push({ companion: cand }); continue; }
     }
@@ -1930,7 +1931,7 @@ function openTavern() {
   picked.forEach((p, i) => {
     const btn = overlay.querySelector(`[data-i="${i}"]`);
     if (btn) btn.onclick = () => {
-      if (STATE.party.filter(m => !m.dead).length < 2) {
+      if (STATE.party.filter(m => !m.dead).length < CHAPTER0.maxPartySize) {
         joinCompanion(p.companion);
       } else {
         openTavern();
@@ -1943,7 +1944,7 @@ function openTavern() {
 // 仲間が加わった瞬間の演出。カットイン素材があれば一言メッセージと共に表示し、
 // 無ければ従来通り即座に加入する（キャラごとに順次カットインを用意できる想定）。
 function joinCompanion(companion) {
-  STATE.party.push({ ...companion, hp: 20 + companion.rank * 2, dead: false });
+  STATE.party.push({ ...companion, hp: 20 + companion.rank * 2, maxHp: 20 + companion.rank * 2, dead: false });
   saveGame(STATE);
   if (companion.joinCutin) {
     showOverlay(`<div class="dialog">${cutinTag(companion.joinCutin)}<p><b>${companion.name}</b>が仲間になった！</p><div class="choices"><button id="joinOk">OK</button></div></div>`);

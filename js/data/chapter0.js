@@ -5,6 +5,7 @@ const CHAPTER0 = {
   chapterId: 0,
   startTimerSeconds: 10 * 60, // 【残り時間】初期値（10分）
   innCost: { time: 30, money: 0, label: "宿屋" },
+  maxPartySize: 3,
   seitaiCost: { time: 120, money: 0, label: "整体研修" },
   practiceCost: { time: 25, stamina: 20, label: "サッカー練習" },
   seitaiReward: { money: 100, seitaiPoint: 1 },

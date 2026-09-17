@@ -69,6 +69,8 @@ class BattleController {
       if (target.hp <= 0) {
         target.hp = 0; target.dead = true;
         this.addLog(`${target.name}は倒れた……この章では戻ってこない。`);
+        const idx = this.state.party.indexOf(target);
+        if (idx !== -1) this.state.party.splice(idx, 1);
       }
       return false;
     }
