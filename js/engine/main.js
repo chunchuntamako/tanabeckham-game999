@@ -1138,7 +1138,9 @@ function startSeitaiEnding() {
       <div class="choices"><button id="seitaiEndBackOk">分岐直前に戻る</button></div></div>`);
     document.getElementById("seitaiEndBackOk").onclick = () => {
       hideOverlay();
-      enterMassageBattleJob();
+      // 「分岐直前」＝人生分岐の選択画面そのものに戻す（そのまま整体バイトへ戻すと
+      // 「①試合に行く」を選び直す手段が無くなってしまうため）
+      showLifeForkCall();
     };
   }, "assets/endings/seitai_end.jpg");
 }
