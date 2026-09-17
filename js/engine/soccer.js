@@ -16,7 +16,7 @@ class SoccerMatch {
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
     this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
-    this.actionLatch = { shoot:false, pass:false, skill:false, tackle:false, passReq:false };
+    this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, tackle:false, passReq:false };
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
     if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
@@ -38,6 +38,34 @@ class SoccerMatch {
     this.banner("必殺技 お年寄り殺し！ 相手能力30%DOWN");
   }
   banner(text) { this.bannerText=text; this.bannerUntil=this.elapsed+2.2; }
+
+  // 少林寺で習得した必殺技。1試合サイクルにつき1回しか使えない
+  // （アップエリアでのアピール使用と試合中の使用は shaolinShotUsedThisMatch を共有する）。
+  // 一度使うと、以後は何度ボタンを押しても「ガッツがたりない！」のバナーが出るだけになる。
+  // これは仕様どおりの理不尽さであり、使用回数を分ける・自動修正するなどの救済はしない。
+  trySpecialShaolin() {
+    const sk = CHAPTER2.skillShaolinShoot;
+    if (!this.state.player.learnedSkills.includes(sk.id)) return;
+    const c2 = this.state.chapter2;
+    if (c2 && c2.shaolinShotUsedThisMatch) { this.banner("ガッツがたりない！"); return; }
+    if (c2) c2.shaolinShotUsedThisMatch = true;
+    this.disable();
+    showCutsceneChain([
+      { cutin: "assets/cutins/tanabe_serious.png", text: "田辺の目つきが変わった。" },
+      { text: "田辺：「くらえ！少林シュート！！」" },
+    ], () => {
+      const success = Math.random() < sk.successRate;
+      if (success) {
+        this.score.player++;
+        this.banner("少林シュート、決まった！！");
+        this.resetBall("cpu");
+      } else {
+        this.banner("少林シュート……ブロックされた！");
+        this.resetBall();
+      }
+      this.enable();
+    });
+  }
 
   // 相手がボールを持っている時に近づいて奪う。成功率はディフェンス練習の熟練度で上がる。
   tryTackle() {
@@ -86,6 +114,7 @@ class SoccerMatch {
     const paralyzed = !!(this.state.chapter2 && this.state.chapter2.paralyzedMatch);
     if (!paralyzed) {
       if (this.pressed("z","skill")) this.trySpecial();
+      if (this.pressed("v","skill2")) this.trySpecialShaolin();
       if (this.pressed("c","tackle")) this.tryTackle();
       if (this.pressed("r","passReq")) this.requestPass();
     }

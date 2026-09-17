@@ -248,9 +248,12 @@ function startChapter2Match() {
   document.getElementById("soccerControls").style.display = "flex";
   const skillBtn = document.getElementById("btn-skill");
   skillBtn.style.display = STATE.player.learnedSkills.includes(CHAPTER0.skillOjiisanGoroshi.id) ? "inline-block" : "none";
+  const skillBtn2 = document.getElementById("btn-skill2");
+  skillBtn2.style.display = STATE.player.learnedSkills.includes(CHAPTER2.skillShaolinShoot.id) ? "inline-block" : "none";
   const match = new SoccerMatch(canvas, STATE, CHAPTER2.matchDurationSec, (evalResult) => {
     document.getElementById("soccerControls").style.display = "none";
     document.getElementById("btn-skill").style.display = "none";
+    document.getElementById("btn-skill2").style.display = "none";
     MATCH = null;
     finishChapter2Match(evalResult);
   });
@@ -917,6 +920,22 @@ function cutinTag(path, cls) {
 function showOverlay(html) { overlay.classList.remove("overlay-battle"); overlay.innerHTML = html; overlay.style.display = "block"; }
 function hideOverlay() { overlay.style.display = "none"; overlay.innerHTML = ""; overlay.classList.remove("overlay-battle"); }
 
+// 汎用カットシーンチェーン。steps: [{cutin?, text}]を1つずつ表示し、
+// 最後にonDoneを呼ぶ（onDone呼び出し前にオーバーレイは閉じる）。
+// soccer.jsの試合中カットシーン（少林シュート）等、モジュール外からも直接呼べる。
+function showCutsceneChain(steps, onDone) {
+  let i = 0;
+  const next = () => {
+    if (i >= steps.length) { hideOverlay(); onDone(); return; }
+    const step = steps[i++];
+    const cutin = step.cutin ? cutinTag(step.cutin) : "";
+    showOverlay(`<div class="dialog">${cutin}<p>${step.text}</p>
+      <div class="choices"><button id="cutsceneStepOk">……</button></div></div>`);
+    document.getElementById("cutsceneStepOk").onclick = next;
+  };
+  next();
+}
+
 // 店舗系メニューの背景イラスト用インラインstyle。両レイヤーにcover/no-repeatを
 // 明示しないと、グラデーション側がauto+repeatになり画面下側が真っ暗に潰れるので注意。
 function shopBgStyle(bgImage) {
@@ -1414,4 +1433,5 @@ function setupTouchControls() {
   bind("btn-shoot", () => MATCH && MATCH.setKey(" ", true), () => MATCH && MATCH.setKey(" ", false));
   bind("btn-tackle", () => MATCH && MATCH.setKey("c", true), () => MATCH && MATCH.setKey("c", false));
   bind("btn-skill", () => MATCH && MATCH.setKey("z", true), () => MATCH && MATCH.setKey("z", false));
+  bind("btn-skill2", () => MATCH && MATCH.setKey("v", true), () => MATCH && MATCH.setKey("v", false));
 }
