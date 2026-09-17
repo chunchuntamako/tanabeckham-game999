@@ -17,6 +17,8 @@ class SoccerMatch {
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
     this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
     this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, tackle:false, passReq:false };
+    // 昇格決定戦：途中出場中のみ使う、金縛り再発〜強制交代の一度きりのスクリプトイベント用
+    this.promotionDeciderTriggered = false; this.promotionDeciderForceEndAt = null;
     this.keyDown = e => { this.keys[e.key] = true; };
     this.keyUp = e => { this.keys[e.key] = false; };
     if (state.chapter2 && state.chapter2.paralyzedMatch) { this.bannerText = "身体が、まったく動かない……"; this.bannerUntil = 3.5; }
@@ -43,10 +45,18 @@ class SoccerMatch {
   // （アップエリアでのアピール使用と試合中の使用は shaolinShotUsedThisMatch を共有する）。
   // 一度使うと、以後は何度ボタンを押しても「ガッツがたりない！」のバナーが出るだけになる。
   // これは仕様どおりの理不尽さであり、使用回数を分ける・自動修正するなどの救済はしない。
+  // 昇格決定戦の実試合中は、未使用であっても絶対に決まらない（アピールで使わずに
+  // 温存していても、本番では通用しない、という今回の指示書のギャグそのものであり、
+  // ここを「せっかく覚えたから撃たせる」ように変更しない）。
   trySpecialShaolin() {
     const sk = CHAPTER2.skillShaolinShoot;
     if (!this.state.player.learnedSkills.includes(sk.id)) return;
     const c2 = this.state.chapter2;
+    if (c2 && c2.promotionDeciderMatch) {
+      c2.shaolinShotUsedThisMatch = true;
+      this.banner("ガッツがたりない！");
+      return;
+    }
     if (c2 && c2.shaolinShotUsedThisMatch) { this.banner("ガッツがたりない！"); return; }
     if (c2) c2.shaolinShotUsedThisMatch = true;
     this.disable();
@@ -110,6 +120,20 @@ class SoccerMatch {
   tick() {
     this.elapsed += 1/30;
     if (this.elapsed >= this.duration) { this.finish(); return; }
+    // 昇格決定戦：途中出場している間だけ、試合の半分を過ぎた頃に金縛りが再発し、
+    // 数秒後に強制交代で試合が終わる（プレイヤー操作で回避・解除はできない仕様）
+    if (this.state.chapter2 && this.state.chapter2.promotionDeciderMatch) {
+      if (!this.promotionDeciderTriggered && this.elapsed >= this.duration * 0.55) {
+        this.promotionDeciderTriggered = true;
+        this.state.chapter2.paralyzedMatch = true;
+        this.promotionDeciderForceEndAt = this.elapsed + 3;
+        this.banner("タナベッカムは金縛りになった！");
+      }
+      if (this.promotionDeciderForceEndAt !== null && this.elapsed >= this.promotionDeciderForceEndAt) {
+        this.finish();
+        return;
+      }
+    }
     // 完全金縛り試合：田辺の移動・パス・シュート・ドリブル・守備・パス要求を全て無効化する
     const paralyzed = !!(this.state.chapter2 && this.state.chapter2.paralyzedMatch);
     if (!paralyzed) {
@@ -281,12 +305,21 @@ class SoccerMatch {
   }
   finish(){
     this.disable();
+    const c2 = this.state.chapter2;
+    const promotionDecider = !!(c2 && c2.promotionDeciderMatch);
     // 完全金縛り試合は、味方だけで勝ち越してしまった場合でも確定敗北にする
-    if (this.state.chapter2 && this.state.chapter2.paralyzedMatch && this.score.player >= this.score.cpu) {
+    // （昇格決定戦の金縛りは専用の強制交代フローで処理するため対象外にする）
+    if (c2 && c2.paralyzedMatch && !promotionDecider && this.score.player >= this.score.cpu) {
       this.score.cpu = this.score.player + 1;
     }
+    let promotionDeciderForcedSub = false;
+    if (promotionDecider) {
+      c2.paralyzedMatch = false;
+      c2.promotionDeciderMatch = false;
+      promotionDeciderForcedSub = true;
+    }
     saveGame(this.state);
-    this.onEnd({distance:Math.round(this.stats.distance),sprintSec:Math.round(this.stats.sprints),lateActiveSec:Math.round(this.stats.lateActive),pass:this.stats.pass,shoot:this.stats.shoot,defense:this.stats.defense,special:this.stats.special,goals:this.score.player,conceded:this.score.cpu,passed:true});
+    this.onEnd({distance:Math.round(this.stats.distance),sprintSec:Math.round(this.stats.sprints),lateActiveSec:Math.round(this.stats.lateActive),pass:this.stats.pass,shoot:this.stats.shoot,defense:this.stats.defense,special:this.stats.special,goals:this.score.player,conceded:this.score.cpu,passed:true,promotionDeciderForcedSub});
   }
 
   render(){

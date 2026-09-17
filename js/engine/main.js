@@ -205,6 +205,14 @@ function onChapter2MatchDue() {
   if (CH2TIMER) CH2TIMER.pause();
   FIELD && FIELD.disable();
   const c2 = STATE.chapter2;
+  c2.shaolinShotUsedThisMatch = false;
+  // 佐々木SVの4択を終えた（promotionReady成立後の）次の公式戦は、必ず昇格決定戦になる
+  if (c2.higuchibitchJoined && !c2.promoted && c2.promotionReady) {
+    c2.promotionDeciderPending = true;
+    saveGame(STATE);
+    showPromotionDeciderAnnounce();
+    return;
+  }
   // ヒグチビッチ加入後の初戦は、アピールしても絶対に途中出場できない（完全ベンチ確定）
   if (c2.benchMode && !c2.higuchiDebutDone) {
     showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。
@@ -255,7 +263,11 @@ function startChapter2Match() {
     document.getElementById("btn-skill").style.display = "none";
     document.getElementById("btn-skill2").style.display = "none";
     MATCH = null;
-    finishChapter2Match(evalResult);
+    if (evalResult.promotionDeciderForcedSub) {
+      finishPromotionDeciderMatch(evalResult);
+    } else {
+      finishChapter2Match(evalResult);
+    }
   });
   MATCH = match;
   match.enable();
@@ -459,6 +471,108 @@ function resolveShaolinQuiz(correct) {
   };
 }
 
+// ---------- 第2章：昇格決定戦 ----------
+// スタメン発表でベンチを告げられる導入会話。少林寺での成果はまだ監督に伝わっていない
+// （アップエリアで少林シュートを見せつけて初めて伝わる、という理不尽な構成）。
+function showPromotionDeciderAnnounce() {
+  showOverlay(`<div class="dialog"><p>新監督：「今日は昇格決定戦だ。」
+
+スタメン発表。田辺の名前は――なかった。</p>
+    <div class="choices"><button id="pdAnnounce1">……</button></div></div>`);
+  document.getElementById("pdAnnounce1").onclick = () => {
+    showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_surprised.png")}<p>田辺：「え？」</p>
+      <div class="choices"><button id="pdAnnounce2">……</button></div></div>`);
+    document.getElementById("pdAnnounce2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>新監督：「お前、最近練習来てないだろ。」</p>
+        <div class="choices"><button id="pdAnnounce3">……</button></div></div>`);
+      document.getElementById("pdAnnounce3").onclick = () => {
+        showOverlay(`<div class="dialog"><p>田辺：「少林寺で修行してました！」</p>
+          <div class="choices"><button id="pdAnnounce4">……</button></div></div>`);
+        document.getElementById("pdAnnounce4").onclick = () => {
+          showOverlay(`<div class="dialog"><p>新監督：「知らん。」</p>
+            <div class="choices"><button id="pdAnnounce5">……</button></div></div>`);
+          document.getElementById("pdAnnounce5").onclick = () => {
+            hideOverlay();
+            enterWarmupMenu();
+          };
+        };
+      };
+    };
+  };
+}
+
+// アップエリアで少林シュートを見せつけて監督にアピールする特別な選択肢。
+// 試合中の使用と同じshaolinShotUsedThisMatchを消費するため、ここで使うと
+// その試合ではもう少林シュートは撃てなくなる（回数を分けるような救済はしない）。
+function playShaolinAppealCutscene() {
+  STATE.chapter2.shaolinShotUsedThisMatch = true;
+  saveGame(STATE);
+  hideOverlay();
+  showCutsceneChain([
+    { cutin: "assets/cutins/tanabe_serious.png", text: "田辺の目つきが変わった。" },
+    { text: "田辺：「見ていてください……少林シュート！！」" },
+  ], () => {
+    showOverlay(`<div class="dialog"><p>新監督：「…………。」
+「田辺、後半から行け。」</p>
+      <div class="choices"><button id="pdAppealOk">……</button></div></div>`);
+    document.getElementById("pdAppealOk").onclick = () => {
+      showOverlay(`<div class="dialog"><p>田辺：「はい！」</p>
+        <div class="choices"><button id="pdAppealOk2">……</button></div></div>`);
+      document.getElementById("pdAppealOk2").onclick = () => {
+        STATE.chapter2.managerAppeal = CHAPTER2.managerAppealThreshold;
+        saveGame(STATE);
+        hideOverlay();
+        offerSubInEntry();
+      };
+    };
+  });
+}
+
+// 昇格決定戦・途中出場あり：金縛りが再発して強制交代させられた後、ヒグチビッチが
+// 決勝ゴールを決めて昇格が決まる（田辺自身のシュートは決まらない）
+function finishPromotionDeciderMatch(evalResult) {
+  STATE.chapter2.matchCount += 1;
+  STATE.chapter2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
+  STATE.matchRecords["ch2_" + STATE.chapter2.matchCount] = evalResult;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>新監督：「田辺！どうした！」
+「……動けないのか？」
+「交代！」</p>
+    <div class="choices"><button id="pdMatch1">……</button></div></div>`);
+  document.getElementById("pdMatch1").onclick = () => {
+    showOverlay(`<div class="dialog">${cutinTag("assets/characters/higuchibitch.png")}<p>ピッチに戻ったヒグチビッチが、独りでゴールへ向かって走り出す。
+一人、また一人とかわし、最後は迷いなく蹴り込んだ。</p>
+      <div class="choices"><button id="pdMatch2">……</button></div></div>`);
+    document.getElementById("pdMatch2").onclick = () => {
+      showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_messi2.png")}<p>サポーター：「ヒグチビッチ！！ヒグチビッチ！！」
+
+歓声の中、ベンチの田辺がぽつりとつぶやいた。
+田辺：「……俺も少林シュート打ったんだけどな。」</p>
+        <div class="choices"><button id="pdMatch3">……</button></div></div>`);
+      document.getElementById("pdMatch3").onclick = () => {
+        STATE.chapter2.promoted = true;
+        STATE.chapter2.promotionDeciderPending = false;
+        saveGame(STATE);
+        showHiguchiTransferEvent();
+      };
+    };
+  };
+}
+
+// 昇格決定戦・途中出場なし：田辺は最後まで出番がなかったが、ヒグチビッチの独壇場で
+// 結果的に昇格は成立する（正誤や出場の有無に関わらず、昇格は必ず起きる）
+function finishPromotionDeciderBenchOnly() {
+  showOverlay(`<div class="dialog"><p>田辺は最後まで出番がなかった。
+ヒグチビッチが一人で試合をひっくり返し、チームは勝利を掴んだ。</p>
+    <div class="choices"><button id="pdBenchOk">……</button></div></div>`);
+  document.getElementById("pdBenchOk").onclick = () => {
+    STATE.chapter2.promoted = true;
+    STATE.chapter2.promotionDeciderPending = false;
+    saveGame(STATE);
+    showHiguchiTransferEvent();
+  };
+}
+
 function showHiguchiTransferEvent() {
   showOverlay(`<div class="dialog"><p>昇格の熱が冷めやらぬ中、ヒグチビッチは颯爽とアーセナルへ移籍していった。
 長い別れの言葉はなかった。
@@ -580,6 +694,7 @@ function showJ1BenchEvent() {
 // 途中出場のチャンスが来た時の入り口。ヒグチビッチ移籍後（サイドバック編）は
 // 出場ポジションの選択を挟む。
 function offerSubInEntry() {
+  if (STATE.chapter2.promotionDeciderPending) STATE.chapter2.promotionDeciderMatch = true;
   if (STATE.chapter2.higuchibitchTransferred) {
     STATE.chapter2.sideBackOffered = true;
     showChoices('監督：「今日はサイドバックでもしておけ。」', [
@@ -707,9 +822,11 @@ CHAPTER 2 CLEAR「天罰、ベンチ、そしてスペインへ」
 function enterWarmupMenu() {
   const actions = CHAPTER2.warmupActions;
   const keys = Object.keys(actions);
+  const canAppealShaolin = STATE.player.learnedSkills.includes(CHAPTER2.skillShaolinShoot.id) && !STATE.chapter2.shaolinShotUsedThisMatch;
   let html = `<div class="dialog"><p>公式戦の時間だ。田辺は今日もベンチスタート。
 アップエリアで監督にアピールしよう。（アピール ${STATE.chapter2.managerAppeal}/${CHAPTER2.managerAppealThreshold}）</p><ul>`;
   keys.forEach((key, i) => { html += `<li><button data-i="${i}">${actions[key].label}</button></li>`; });
+  if (canAppealShaolin) html += `<li><button id="warmupShaolinAppeal">🔥少林シュートでアピール</button></li>`;
   html += `</ul><button id="warmupGo">試合を見る（ベンチへ）</button></div>`;
   showOverlay(html);
   keys.forEach((key, i) => {
@@ -727,6 +844,7 @@ function enterWarmupMenu() {
       }
     };
   });
+  if (canAppealShaolin) document.getElementById("warmupShaolinAppeal").onclick = playShaolinAppealCutscene;
   document.getElementById("warmupGo").onclick = resolveBenchMatch;
 }
 
@@ -794,6 +912,7 @@ TIGAKU ${scoreP} - ${scoreC} 相手
     <div class="choices"><button id="benchMatchOk">OK</button></div></div>`);
   document.getElementById("benchMatchOk").onclick = () => {
     hideOverlay();
+    if (STATE.chapter2.promotionDeciderPending) { finishPromotionDeciderBenchOnly(); return; }
     if (STATE.chapter2.higuchiDebutDone && !STATE.chapter2.higuchiDebutMomShown) { showHiguchiDebutMomEvent(); return; }
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
