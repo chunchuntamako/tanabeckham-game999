@@ -351,8 +351,7 @@ function finishChapter2Match(evalResult) {
       (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
     if (dismiss) { showManagerDismissalEvent(); return; }
     if (STATE.chapter2.benchMode && STATE.chapter2.higuchiDebutDone && !STATE.chapter2.shaolinIdeaShown) { showShaolinIdeaEvent(); return; }
-    if (checkCurseSuspicionTrigger()) return;
-    if (checkJ1BenchTrigger()) return;
+    if (checkJ1StruggleDigestTrigger()) return;
     if (STATE.chapter2.matchCount === 1 && !STATE.chapter2.momErrandShown) { showMomErrandEvent(); return; }
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
@@ -618,28 +617,66 @@ function showHiguchiTransferEvent() {
   };
 }
 
-// ---------- 第2章：お祓い・呪い・💩システム ----------
-function checkCurseSuspicionTrigger() {
+// ---------- 第2章：J1苦戦ダイジェスト・お祓いじゃんけん・💩システム ----------
+// J1初戦の結果画面の直後、勝敗に関わらず一度だけ流れる苦戦ダイジェスト。
+// 本質は「呪いだけが原因ではなく、田辺自身がJ1レベルについていけていないこと」だが、
+// ダイジェスト中に金縛りが再発し、これが「まだ呪われている」という噂の発端になる。
+function checkJ1StruggleDigestTrigger() {
   const c2 = STATE.chapter2;
-  if (c2.j1Mode && !c2.curseSuspicionRaised &&
-      (c2.matchCount - c2.matchCountAtJ1Start) >= CHAPTER2.matchesBeforeCurseSuspicion) {
-    showCurseSuspicionEvent();
+  if (c2.j1Mode && !c2.j1StruggleDigestShown) {
+    showJ1StruggleDigest();
     return true;
   }
   return false;
 }
 
-function showCurseSuspicionEvent() {
-  showOverlay(`<div class="dialog"><p>J1の壁は厚く、田辺は苦戦を続けていた。
-ひろし君の息子が再び動き出す――「まだ呪われてるんじゃない？」
-サポーターの声が田辺に届く。「お祓いしてこい！」</p>
-    <div class="choices"><button id="curseSuspicionOk">神社へ向かう</button></div></div>`);
-  document.getElementById("curseSuspicionOk").onclick = () => {
-    STATE.chapter2.curseSuspicionRaised = true;
-    saveGame(STATE);
-    hideOverlay();
-    FIELD && FIELD.enable();
-    if (CH2TIMER) CH2TIMER.resume();
+function showJ1StruggleDigest() {
+  STATE.chapter2.j1StruggleDigestShown = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p><b>J1では、タナベッカムは勝てなかった……。</b></p>
+    <div class="choices"><button id="j1DigestOk1">……</button></div></div>`);
+  document.getElementById("j1DigestOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>ボールを奪われる。
+ドリブルで抜かれる。
+相手についていけない。
+少林シュートを撃った後は、足が動かなくなる。
+
+チームはただ、負けを重ねていった。</p>
+      <div class="choices"><button id="j1DigestOk2">……</button></div></div>`);
+    document.getElementById("j1DigestOk2").onclick = () => {
+      showOverlay(`<div class="dialog"><p><b>タナベッカムは金縛りで動けない！</b></p>
+        <div class="choices"><button id="j1DigestOk3">……</button></div></div>`);
+      document.getElementById("j1DigestOk3").onclick = () => {
+        STATE.chapter2.curseSuspicionRaised = true;
+        saveGame(STATE);
+        showExorcismMomSuggestion();
+      };
+    };
+  };
+}
+
+// 翌朝、母から「まだ呪われてるんじゃないの？お祓いしてきなさい」と言われる。
+// 田辺自身は「J1が強いだけ」と思っているが、母には押し切られる。
+function showExorcismMomSuggestion() {
+  STATE.chapter2.exorcismMomShown = true;
+  STATE.chapter2.objective = "神社でお祓いを受けよう";
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>母：「あんた、また試合中に動かなくなったんだって？」
+「前に神社で何かしたんじゃないの？」
+「一回、お祓いでもしてきなさい。」</p>
+    <div class="choices"><button id="exMomOk1">……</button></div></div>`);
+  document.getElementById("exMomOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「J1が強いだけだと思うけど……。」</p>
+      <div class="choices"><button id="exMomOk2">……</button></div></div>`);
+    document.getElementById("exMomOk2").onclick = () => {
+      showOverlay(`<div class="dialog"><p>母：「いいから行ってきなさい。」</p>
+        <div class="choices"><button id="exMomOk3">……</button></div></div>`);
+      document.getElementById("exMomOk3").onclick = () => {
+        hideOverlay();
+        FIELD && FIELD.enable();
+        if (CH2TIMER) CH2TIMER.resume();
+      };
+    };
   };
 }
 
@@ -647,74 +684,78 @@ function onAltar(id) {
   if (id !== "exorcism_altar") return;
   FIELD.disable();
   if (CH2TIMER) CH2TIMER.pause();
-  showChoices(`お祓いを受けますか？（G${CHAPTER2.exorcismCost.money}を消費します）`, [
-    { label: "受ける", onClick: performExorcism },
-    { label: "やめる", onClick: () => { hideOverlay(); FIELD.enable(); if (CH2TIMER) CH2TIMER.resume(); } },
-  ]);
-}
-
-// お祓いの結果は既存の「運」パラメータで決まるが、プレイヤーには一切明示しない
-function performExorcism() {
-  if (STATE.player.gold < CHAPTER2.exorcismCost.money) {
-    showChoices("お金が足りない……", [
+  if (STATE.chapter2.exorcismJankenDone) {
+    showChoices("神主：「お祓いは、もう先日済ませましたよ。」", [
       { label: "戻る", onClick: () => { hideOverlay(); FIELD.enable(); if (CH2TIMER) CH2TIMER.resume(); } },
     ]);
     return;
   }
-  STATE.player.gold -= CHAPTER2.exorcismCost.money;
-  STATE.chapter2.nextMatchTimerSec = Math.max(0, STATE.chapter2.nextMatchTimerSec - CHAPTER2.exorcismCost.time);
-  STATE.chapter2.exorcismCount += 1;
+  showExorcismJankenIntro();
+}
 
-  const score = Math.random() * 100 + STATE.player.luck;
-  const th = CHAPTER2.exorcismOutcomeThresholds;
-  let msg;
-  if (score >= th.full) {
-    STATE.chapter2.curseLevel = 0;
-    msg = "タナベッカムの呪いは完全に解けた！";
-  } else if (score >= th.partial) {
-    STATE.chapter2.curseLevel = Math.max(0, STATE.chapter2.curseLevel - 1);
-    msg = "タナベッカムの呪いは少しだけ解けた！";
+// 通常のお祓いではなく「お祓いじゃんけん」。全3本勝負で、負けるたびに💩が1つ増える
+// （勝ち・あいこでは増減なし）。じゃんけんが終わっても💩は消えない。3個で「うんこまん」。
+function showExorcismJankenIntro() {
+  showOverlay(`<div class="dialog"><p>神主：「では、お祓いじゃんけんを始めましょう。」
+
+全3本勝負。負けるたびに、悪いものが降り積もります。</p>
+    <div class="choices"><button id="jankenIntroOk">……</button></div></div>`);
+  document.getElementById("jankenIntroOk").onclick = () => playJankenRound(1);
+}
+
+function playJankenRound(round) {
+  showOverlay(`<div class="dialog"><p>お祓いじゃんけん（${round}本目/3本）</p>
+    <div class="choices">
+      <button data-h="gu">グー</button>
+      <button data-h="choki">チョキ</button>
+      <button data-h="pa">パー</button>
+    </div></div>`);
+  ["gu", "choki", "pa"].forEach(h => {
+    overlay.querySelector(`[data-h="${h}"]`).onclick = () => resolveJankenRound(round, h);
+  });
+}
+
+function resolveJankenRound(round, hand) {
+  const hands = ["gu", "choki", "pa"];
+  const cpu = hands[Math.floor(Math.random() * 3)];
+  const beats = { gu: "choki", choki: "pa", pa: "gu" };
+  const handLabel = { gu: "グー", choki: "チョキ", pa: "パー" };
+  let msg = `田辺：${handLabel[hand]}\n神主：${handLabel[cpu]}\n\n`;
+  if (hand === cpu) {
+    msg += "あいこ。";
+  } else if (beats[hand] === cpu) {
+    msg += "田辺の勝ち！";
   } else {
     STATE.chapter2.curseLevel = Math.min(CHAPTER2.curseMax, STATE.chapter2.curseLevel + 1);
-    msg = "なんと！タナベッカムはさらに呪われた！";
+    msg += "田辺の負け……💩が1つ増えた。";
     if (STATE.chapter2.curseLevel >= CHAPTER2.curseMax && !STATE.player.titles.includes(CHAPTER2.titles.poop)) {
       STATE.player.titles.push(CHAPTER2.titles.poop);
     }
   }
   saveGame(STATE);
-  showOverlay(`<div class="dialog"><p>${msg}</p><div class="choices"><button id="exorcismOk">OK</button></div></div>`);
-  document.getElementById("exorcismOk").onclick = () => {
-    hideOverlay();
-    FIELD.enable();
-    FIELD.render();
-    if (CH2TIMER) CH2TIMER.resume();
+  showOverlay(`<div class="dialog"><p>${msg}</p><div class="choices"><button id="jankenRoundOk">……</button></div></div>`);
+  document.getElementById("jankenRoundOk").onclick = () => {
+    if (round < 3) playJankenRound(round + 1);
+    else finishExorcismJanken();
   };
 }
 
-// ---------- 第2章：サイドバック・出場機会減少 ----------
-function checkJ1BenchTrigger() {
-  const c2 = STATE.chapter2;
-  if (c2.j1Mode && !c2.benchMode &&
-      (c2.matchCount - c2.matchCountAtJ1Start) >= CHAPTER2.matchesBeforeJ1Bench) {
-    showJ1BenchEvent();
-    return true;
-  }
-  return false;
-}
-
-function showJ1BenchEvent() {
-  showOverlay(`<div class="dialog"><p>J1のレベルについていけず、田辺の出場機会は徐々に減っていった。
-「プロなのに、試合に出られない」――そんな現実が田辺を待っていた。
-出場給が減り、生活は苦しくなっていく。</p>
-    <div class="choices"><button id="j1BenchOk">……</button></div></div>`);
-  document.getElementById("j1BenchOk").onclick = () => {
-    STATE.chapter2.benchMode = true;
-    STATE.chapter2.managerAppeal = 0;
-    STATE.chapter2.massageJobUnlocked = true;
-    saveGame(STATE);
-    hideOverlay();
-    FIELD && FIELD.enable();
-    if (CH2TIMER) CH2TIMER.resume();
+function finishExorcismJanken() {
+  STATE.chapter2.exorcismJankenDone = true;
+  STATE.chapter2.exorcismCount += 1;
+  STATE.chapter2.objective = "次の公式戦に備えよう";
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>神主：「お祓いは終了です。」</p>
+    <div class="choices"><button id="jankenEndOk1">……</button></div></div>`);
+  document.getElementById("jankenEndOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>田辺：「増えてるんですけど。」</p>
+      <div class="choices"><button id="jankenEndOk2">……</button></div></div>`);
+    document.getElementById("jankenEndOk2").onclick = () => {
+      hideOverlay();
+      FIELD.enable();
+      FIELD.render();
+      if (CH2TIMER) CH2TIMER.resume();
+    };
   };
 }
 

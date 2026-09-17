@@ -11,11 +11,7 @@ const CHAPTER2 = {
   matchPayment: 50,          // 出場給（実際に出場した試合のみ）
 
   charmPrice: 30,            // 神社のお守り価格(G)
-  exorcismCost: { money: 200, time: 60 }, // お祓いに必要なG・時間(秒)
-  curseMax: 3,
-  // お祓いの結果しきい値。(乱数0-100 + 運)がこの値以上で各結果になる。
-  // プレイヤーには運が関係していることを一切説明しない（隠しステータス扱い）。
-  exorcismOutcomeThresholds: { full: 90, partial: 55 }, // 未満は「さらに呪われた」
+  curseMax: 3,               // お祓いじゃんけんの💩上限（3本勝負なので全敗でmax）
 
   // ボス「神」。通常プレイではほぼ勝てないが、理論上は撃破可能な値にする。
   godBoss: { name: "神", hp: 999, atk: 60, def: 40, speed: 20, luck: 30, exp: 0, gold: 0, boss: true },
@@ -72,11 +68,6 @@ const CHAPTER2 = {
     passInterceptBonus: 4,         // 相手のパスカット（ルーズボール回収半径）が広い
   },
 
-  // J1で何試合苦戦したら「まだ呪われてるんじゃない？」の空気になるか
-  matchesBeforeCurseSuspicion: 3,
-
-  // J1開始から何試合で出場機会が減りベンチに戻るか（サイドバック編の入口）
-  matchesBeforeJ1Bench: 6,
 
   // 整体師アルバイトのミニゲーム設定
   massageJob: {
