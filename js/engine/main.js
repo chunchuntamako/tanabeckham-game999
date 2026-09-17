@@ -35,7 +35,7 @@ function init() {
   // 背景パスはfield.jsのMAPSを単一の情報源にし、バージョンクエリのズレで
   // プリロードが効かなくなる事故を防ぐ（MAPSにマップを足せば自動的に先読みされる）。
   ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png",
-    CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.png?v=1"]
+    CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.png?v=2"]
     .concat(Object.values(MAPS).map(m => m.bg))
     .forEach(p => getImage(p));
   showTitleScreen();
@@ -1087,9 +1087,9 @@ function showLifeForkCall() {
 }
 
 // 中間・通常エンディング共通のスタッフロール演出。onDoneで分岐直前などへ復帰させる。
-function showEndingRoll(titleText, bodyHtml, onDone) {
+function showEndingRoll(titleText, bodyHtml, onDone, bgImage) {
   playBGM("bgm_title");
-  showOverlay(`<div class="credits-wrap">
+  showOverlay(`<div class="credits-wrap"${shopBgStyle(bgImage)}>
     <div class="credits-scroll">
       <h2>${titleText}</h2>
       ${bodyHtml}
@@ -1124,7 +1124,7 @@ function startSeitaiEnding() {
       hideOverlay();
       enterMassageBattleJob();
     };
-  });
+  }, "assets/endings/seitai_end.png");
 }
 
 // 「試合に行く」を選んだ場合。試合結果は自由（本編は分岐しない）で、終了後に解雇される。
@@ -1315,8 +1315,10 @@ class PoliceChase {
     this.state = state; this.onEnd = onEnd;
     this.W = canvas.width; this.H = canvas.height;
     const cfg = CHAPTER2.policeChase;
-    this.player = { x: this.W / 2, y: this.H - 60, speed: cfg.playerSpeed };
-    this.exit = { x: this.W / 2, y: 44, r: 32 };
+    // 2026-09-17：実画像（05_警察逃走ステージ.png）は「スタート」が上端、
+    // 「脱出」が下端に描かれているため、プレイヤー初期位置と出口を入れ替えた。
+    this.player = { x: this.W / 2, y: 44, speed: cfg.playerSpeed };
+    this.exit = { x: this.W / 2, y: this.H - 60, r: 32 };
     this.cops = [];
     for (let i = 0; i < cfg.copCount; i++) {
       this.cops.push({ x: 30 + i * (this.W - 60) / Math.max(1, cfg.copCount - 1), y: this.H * 0.4, speed: cfg.copSpeed });
@@ -1357,7 +1359,7 @@ class PoliceChase {
   render() {
     const c = this.ctx;
     c.fillStyle = "#1b1e24"; c.fillRect(0, 0, this.W, this.H);
-    const bg = getImage("assets/maps/police_chase_map.png?v=1");
+    const bg = getImage("assets/maps/police_chase_map.png?v=2");
     if (bg) c.drawImage(bg, 0, 0, this.W, this.H);
     c.fillStyle = "rgba(80,200,120,.45)";
     c.beginPath(); c.arc(this.exit.x, this.exit.y, this.exit.r, 0, Math.PI * 2); c.fill();
@@ -1400,7 +1402,7 @@ function onPoliceChaseCaught() {
         hideOverlay();
         startPoliceChase();
       };
-    });
+    }, "assets/endings/stinky_rice_end.png");
   };
 }
 
@@ -1457,7 +1459,7 @@ function showSpainOfferEvent() {
 function showChapter2ClearedTitle() {
   playBGM("bgm_title");
   const c2 = STATE.chapter2;
-  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_back.png")}
+  showOverlay(`<div class="dialog">${cutinTag("assets/endings/spain_end.png")}
     <p><b>タナベッカムの不遇</b>
 第2章 Ver.0.1
 

@@ -86,26 +86,27 @@ const MAPS = {
   },
   // 第2章：昇格祈願の神社。入口(下)から宝箱→お守り売り場→本殿(上)の順に並ぶ。
   // 本殿で祈ると宝箱の有無に関係なく「神」が出現する（宝箱は任意のお賽銭窃盗イベント）。
-  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  // 2026-09-17：実画像（09_神社.png）を受領。画像内の明示ラベル位置に合わせて
+  // 宝箱・お守り売り場・本殿の座標を再較正した。
   shrine: {
     name: "神社",
-    bg: "assets/maps/shrine_map.png?v=1",
+    bg: "assets/maps/shrine_map.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 4, label: "戻る" }],
-    chest: { x: 4, y: 12, id: "shrine_offering", label: "賽銭箱" },
-    charmShop: { x: 4, y: 8, id: "shrine_charm_shop", label: "お守り売り場" },
-    mainHall: { x: 4, y: 3, id: "shrine_main_hall", label: "本殿" },
+    chest: { x: 1, y: 5, id: "shrine_offering", label: "賽銭箱" },
+    charmShop: { x: 7, y: 5, id: "shrine_charm_shop", label: "お守り売り場" },
+    mainHall: { x: 4, y: 2, id: "shrine_main_hall", label: "本殿" },
     // 第2次神社クエスト「お祓い」。curseSuspicionRaisedになるまでは出現しない。
+    // 画像には描かれていない架空のポイントなので、他と重ならない位置に据え置く。
     altar: { x: 6, y: 8, id: "exorcism_altar", label: "お祓い" },
     encounter: null,
   },
   // 第2章：少林寺。3人のボスを順番に倒し（前段クリアが次のボス出現の条件）、
   // 全員撃破後に佐々木SVの4択に挑む、雑魚のいないボスラッシュの修行の場。
-  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
   shaolin: {
     name: "少林寺",
-    bg: "assets/maps/shaolin_map.png?v=1",
+    bg: "assets/maps/shaolin_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 4, label: "戻る" }],
@@ -123,23 +124,25 @@ const MAPS = {
   },
   // 2026-09-17：田辺整体院・セバスチャン診療室の内観画像を受け取ったのを機に、
   // ダイアログのポップアップではなく独立して歩き回れるマップに変更。
-  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  // 実画像（受付／施術ベッドの位置が確認できる）に合わせて内部座標を較正済み。
+  // field/town側の出入口座標（tx,ty）は今回のfield全体マップ画像が不採用のため
+  // 変更していない（従来どおりfield(6,9)／town(4,9)へ着地する）。
   seitai_clinic: {
     name: "田辺整体院",
-    bg: "assets/maps/seitai_clinic_interior.png?v=1",
+    bg: "assets/maps/seitai_clinic_interior.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 9, label: "戻る" }],
-    mainHall: { x: 4, y: 5, id: "seitai_clinic_desk", label: "受付" },
+    exits: [{ x: 4, y: 13, to: "field", tx: 6, ty: 9, label: "戻る" }],
+    mainHall: { x: 3, y: 10, id: "seitai_clinic_desk", label: "受付" },
     encounter: null,
   },
   sebastian_clinic: {
     name: "セバスチャン診療室",
-    bg: "assets/maps/sebastian_clinic_interior.png?v=1",
+    bg: "assets/maps/sebastian_clinic_interior.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 15, to: "town", tx: 4, ty: 9, label: "戻る" }],
-    mainHall: { x: 4, y: 5, id: "sebastian_clinic_desk", label: "診察" },
+    exits: [{ x: 4, y: 14, to: "town", tx: 4, ty: 9, label: "戻る" }],
+    mainHall: { x: 5, y: 7, id: "sebastian_clinic_desk", label: "診察" },
     encounter: null,
   },
 };

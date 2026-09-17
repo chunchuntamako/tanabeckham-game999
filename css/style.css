@@ -211,6 +211,10 @@ button { font:inherit; }
   user-select:none;
   -webkit-user-select:none;
   touch-action:none;
+  /* JSがdisplay:flexへ上書きする際、必殺技ボタンが2〜3個に増えると
+     nowrapのままでは画面外へはみ出して押せなくなるため、折り返す */
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
 #soccerControls button {
   min-height:56px;
