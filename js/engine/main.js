@@ -269,9 +269,9 @@ function startMatchDueFlow() {
       { label: "試合に出る", onClick: startParalyzedMatch },
     ]);
   } else if (curseMatchesSoFar >= 1) {
-    // 2〜5試合目はダイジェストで一気に見せる（いずれも敗北）
+    // 2〜5試合目は1試合ずつ待たされず、残り全部をまとめて消化する（いずれも敗北）
     showChoices(`公式戦の時間だ。第${c2.matchCount + 1}戦。`, [
-      { label: "試合に出る", onClick: showDigestMatch },
+      { label: "試合に出る", onClick: showDigestMatchBundle },
     ]);
   } else if (c2.j1Mode && !c2.j1OpeningAnnounced) {
     // J1初戦は告知を一度だけ挟む。通常のリアルタイム試合で、結果によって本編は分岐しない。
@@ -373,15 +373,31 @@ function startParalyzedMatch() {
   match.enable();
 }
 
-// 2〜5試合目相当：実際のミニゲームは起動せず、短いテキストとスコアだけで見せる
-// ダイジェスト。天罰下のため必ず敗北扱いになる
-function showDigestMatch() {
+// 2〜5試合目相当：実際のミニゲームは起動せず、いずれも敗北扱い。1試合ずつ
+// リアルタイムで待たされず、監督更迭までの残り試合を一気に消化してまとめて見せる。
+function showDigestMatchBundle() {
   hideOverlay();
-  const conceded = 1 + Math.floor(Math.random() * 3);
-  finishChapter2Match({
-    goals: 0, conceded, pass: 0, shoot: 0, defense: 0, distance: 0,
-    flavor: "この試合も、身体が思うように動かないまま終わった。",
-  });
+  const c2 = STATE.chapter2;
+  const lines = [];
+  while ((c2.matchCount - c2.matchCountAtPunishment) < CHAPTER2.matchesBeforeDismissal) {
+    c2.matchCount += 1;
+    const conceded = 1 + Math.floor(Math.random() * 3);
+    const evalResult = { goals: 0, conceded, pass: 0, shoot: 0, defense: 0, distance: 0,
+      flavor: "この試合も、身体が思うように動かないまま終わった。" };
+    STATE.matchRecords["ch2_" + c2.matchCount] = evalResult;
+    lines.push(`第${c2.matchCount}戦　田辺 0 - ${conceded} 相手`);
+  }
+  c2.nextMatchTimerSec = CHAPTER2.matchIntervalSec;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}
+    <p><b>敗北が続いた……</b>
+${lines.join("\n")}
+この試合も、身体が思うように動かないまま終わった。</p>
+    <div class="choices"><button id="digestBundleOk">……</button></div></div>`);
+  document.getElementById("digestBundleOk").onclick = () => {
+    hideOverlay();
+    showManagerDismissalEvent();
+  };
 }
 
 function finishChapter2Match(evalResult) {
