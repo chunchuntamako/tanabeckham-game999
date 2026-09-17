@@ -1124,9 +1124,19 @@ function showEndingRoll(titleText, bodyHtml, onDone, bgImage) {
     </div>
     <button id="creditsSkip" class="credits-skip">スキップ</button>
   </div>`);
-  const finish = () => { hideOverlay(); onDone(); };
+  // スキップ後もこのsetTimeoutが生き残ると、プレイヤーが既に先へ進んだ後
+  // （例：警察逃走をリトライして遊んでいる最中）に16秒後onDoneが再度呼ばれ、
+  // 進行中の画面を巻き込んで壊してしまう。doneフラグとclearTimeoutの両方で防ぐ。
+  let done = false;
+  const timeoutId = setTimeout(() => finish(), 16000);
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timeoutId);
+    hideOverlay();
+    onDone();
+  };
   document.getElementById("creditsSkip").onclick = finish;
-  setTimeout(finish, 16000);
 }
 
 // 「整体で稼ぐ」を選んだ場合の中間エンディング。ゲームオーバー扱いではなく、
