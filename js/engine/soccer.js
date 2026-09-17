@@ -16,10 +16,10 @@ class SoccerMatch {
     this.teammates = [0,1,2,3].map(i => { const x=lane(i,4), y=this.H-180-(i%2)*75; return { x, y, homeX:x, homeY:y, team:"player", ai:true }; });
     this.enemies = [0,1,2,3,4].map(i => { const x=lane(i,5), y=150+(i%2)*80; return { x, y, homeX:x, homeY:y, team:"cpu", ai:true, holdSec:0 }; });
     // 両ゴールに簡易ゴールキーパーを配置（ボールのx位置にゴールライン上で軽く追従するだけ）
-    this.playerGK = { x: this.W / 2, y: this.H - 20, team: "player" };
-    this.cpuGK = { x: this.W / 2, y: 20, team: "cpu" };
+    this.playerGK = { x: this.W / 2, y: this.H - 20, team: "player", noPickupUntil: 0 };
+    this.cpuGK = { x: this.W / 2, y: 20, team: "cpu", noPickupUntil: 0 };
     this.keys = {}; this.mateHoldSec = 0; this.specialUntil = 0; this.bannerUntil = 0; this.mateNoPickupUntil = 0;
-    this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0;
+    this.pendingGoal = null; this.ballTrail = []; this.tanabeNoPickupUntil = 0; this.gkHoldSec = 0;
     this.actionLatch = { shoot:false, pass:false, skill:false, skill2:false, skill3:false, tackle:false, passReq:false };
     // 昇格決定戦：途中出場中のみ使う、金縛り再発〜強制交代の一度きりのスクリプトイベント用
     this.promotionDeciderTriggered = false; this.promotionDeciderForceEndAt = null;
@@ -226,7 +226,24 @@ class SoccerMatch {
     if(dx||dy){const n=Math.hypot(dx,dy)||1;this.tanabe.x=Math.max(12,Math.min(this.W-12,this.tanabe.x+dx/n*spd));this.tanabe.y=Math.max(15,Math.min(this.H-15,this.tanabe.y+dy/n*spd));this.stats.distance+=spd;if(this.elapsed>this.duration*.7)this.stats.lateActive+=1/30;}
 
     if(!paralyzed&&!this.ball.owner&&!this.pendingGoal&&this.elapsed>=this.tanabeNoPickupUntil&&this.distTo(this.ball,this.tanabe)<17)this.ball.owner=this.tanabe;
-    if(this.ball.owner===this.tanabe){
+    // ゴールキーパーは自陣ゴール前に来た浮き球を積極的に拾いに行く（シュートを止めた演出も兼ねる）
+    if(!this.ball.owner&&!this.pendingGoal){
+      if(this.ball.y>this.H-100&&this.elapsed>=this.playerGK.noPickupUntil&&this.distTo(this.ball,this.playerGK)<26)this.ball.owner=this.playerGK;
+      else if(this.ball.y<100&&this.elapsed>=this.cpuGK.noPickupUntil&&this.distTo(this.ball,this.cpuGK)<26)this.ball.owner=this.cpuGK;
+    }
+    if(this.ball.owner===this.playerGK||this.ball.owner===this.cpuGK){
+      const gk=this.ball.owner;
+      this.ball.x=gk.x;this.ball.y=gk.y;this.gkHoldSec+=1/30;
+      if(this.gkHoldSec>=.4){
+        this.gkHoldSec=0;
+        const mates=gk===this.playerGK?this.teammates:this.enemies;
+        const target=mates[Math.floor(Math.random()*mates.length)];
+        const ang=Math.atan2(target.y-gk.y,target.x-gk.x);
+        this.ball.owner=null;this.ball.vx=Math.cos(ang)*6;this.ball.vy=Math.sin(ang)*6;
+        gk.noPickupUntil=this.elapsed+.5;
+        this.banner(gk===this.playerGK?"キーパーがキャッチ！":"相手キーパーがキャッチ……");
+      }
+    } else if(this.ball.owner===this.tanabe){
       this.ball.x=this.tanabe.x;this.ball.y=this.tanabe.y-13;
       if(this.pressed(" ","shoot")){
         this.stats.shoot++; this.ball.owner=null; this.ball.vy=-9; this.ball.vx=(Math.random()-.5)*3;
@@ -415,12 +432,12 @@ class SoccerMatch {
     // goals
     c.strokeRect(this.W/2-55,12,110,22);c.strokeRect(this.W/2-55,this.H-34,110,22);c.restore();
     const drawPlayer=(o,color,r)=>{c.fillStyle=color;c.beginPath();c.arc(o.x,o.y,r||8,0,Math.PI*2);c.fill();c.strokeStyle="#fff";c.stroke();};
-    // ゴールキーパーは各ゴールライン上に常駐（フィールドプレイヤーとは別色で描き分ける）
-    drawPlayer(this.playerGK,"#43a047",9);
-    drawPlayer(this.cpuGK,"#fdd835",9);
     // 選手はドット絵の味方／敵スプライトで統一表示。読み込み前は従来の丸に自動フォールバック。
     const teamSprite=getImage("assets/characters/soccer_teammate.png");
     const enemySprite=getImage("assets/characters/soccer_enemy.png");
+    // ゴールキーパーもフィールドプレイヤーと同じスプライトで表示する
+    if(teamSprite)c.drawImage(teamSprite,this.playerGK.x-9,this.playerGK.y-15,18,26);else drawPlayer(this.playerGK,"#1976d2");
+    if(enemySprite)c.drawImage(enemySprite,this.cpuGK.x-9,this.cpuGK.y-15,18,26);else drawPlayer(this.cpuGK,"#d32f2f");
     this.teammates.forEach(m=>{if(teamSprite)c.drawImage(teamSprite,m.x-9,m.y-15,18,26);else drawPlayer(m,"#1976d2");});
     const debuffed=this.elapsed<this.specialUntil;
     this.enemies.forEach(e=>{
