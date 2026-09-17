@@ -1898,8 +1898,10 @@ function openTavern() {
   const flavor = ["酔っぱらい", "旅人", "冒険者", "サッカー好き", "情報屋"];
   const npcCount = 2 + Math.floor(rng() * 2);
   let picked = [];
+  // 死亡（離脱）した仲間は枠を空けるので、生存人数だけで空き枠を数える
+  const aliveCount = STATE.party.filter(m => !m.dead).length;
   for (let i = 0; i < npcCount; i++) {
-    if (STATE.party.length + picked.length < 2 && rng() < 0.5) {
+    if (aliveCount + picked.length < 2 && rng() < 0.5) {
       const cand = weightedPickCompanion(rng, STATE.party.concat(picked));
       if (cand) { picked.push({ companion: cand }); continue; }
     }
@@ -1914,7 +1916,7 @@ function openTavern() {
   picked.forEach((p, i) => {
     const btn = overlay.querySelector(`[data-i="${i}"]`);
     if (btn) btn.onclick = () => {
-      if (STATE.party.length < 2) {
+      if (STATE.party.filter(m => !m.dead).length < 2) {
         joinCompanion(p.companion);
       } else {
         openTavern();
