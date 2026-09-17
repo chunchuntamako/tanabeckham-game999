@@ -206,6 +206,14 @@ function onChapter2MatchDue() {
   FIELD && FIELD.disable();
   const c2 = STATE.chapter2;
   c2.shaolinShotUsedThisMatch = false;
+  // J2降格後は「今日は公式戦の日のはずが、ベンチ入りすらしていない」を一度だけ見せて
+  // 無所属イベントへ進む。以降、通常の公式戦サイクルはこの章では再開しない。
+  if (c2.j2Mode && !c2.j2OpeningShown) {
+    c2.j2OpeningShown = true;
+    saveGame(STATE);
+    showJ2OpeningEvent();
+    return;
+  }
   // 佐々木SVの4択を終えた（promotionReady成立後の）次の公式戦は、必ず昇格決定戦になる
   if (c2.higuchibitchJoined && !c2.promoted && c2.promotionReady) {
     c2.promotionDeciderPending = true;
@@ -255,6 +263,35 @@ function showJ1OpeningAnnounce() {
   showOverlay(`<div class="dialog"><p><b>J1リーグ開幕</b></p>
     <div class="choices"><button id="j1OpenOk">試合に出る</button></div></div>`);
   document.getElementById("j1OpenOk").onclick = startChapter2Match;
+}
+
+// J2降格後の開幕。もう公式戦サイクルには戻らず、無所属イベントへ進む。
+function showJ2OpeningEvent() {
+  showOverlay(`<div class="dialog"><p>翌シーズン――
+
+FC山陽TIGAKU・J2
+
+今日は公式戦の日。
+しかし――</p>
+    <div class="choices"><button id="j2Open1">……</button></div></div>`);
+  document.getElementById("j2Open1").onclick = () => {
+    showOverlay(`<div class="dialog"><p><b>タナベッカムは、ベンチ入りすらしていなかった。</b></p>
+      <div class="choices"><button id="j2Open2">……</button></div></div>`);
+    document.getElementById("j2Open2").onclick = () => {
+      STATE.position = { map: "home", x: 4, y: 14 };
+      STATE.chapter2.objective = "アルバイトを探そう";
+      STATE.chapter2.massageJobUnlocked = true;
+      saveGame(STATE);
+      showOverlay(`<div class="dialog"><p>田辺：「……今日、試合なんだけどな。」
+「このままじゃ生活できない……。」
+「アルバイトでもするか。」</p>
+        <div class="choices"><button id="j2Open3">……</button></div></div>`);
+      document.getElementById("j2Open3").onclick = () => {
+        hideOverlay();
+        enterField();
+      };
+    };
+  };
 }
 
 // 序盤数試合は不遇補正なし（企画仕様どおり）。SoccerMatchをそのまま流用する。
@@ -352,6 +389,16 @@ function finishChapter2Match(evalResult) {
     if (dismiss) { showManagerDismissalEvent(); return; }
     if (STATE.chapter2.benchMode && STATE.chapter2.higuchiDebutDone && !STATE.chapter2.shaolinIdeaShown) { showShaolinIdeaEvent(); return; }
     if (checkJ1StruggleDigestTrigger()) return;
+    if (STATE.chapter2.sidebackFarewellMatchPending) {
+      STATE.chapter2.sidebackFarewellMatchPending = false;
+      saveGame(STATE);
+      showJ2RelegationEvent();
+      return;
+    }
+    if (STATE.chapter2.j1Mode && STATE.chapter2.exorcismJankenDone && !STATE.chapter2.sidebackDecisionShown) {
+      showSidebackDecisionEvent();
+      return;
+    }
     if (STATE.chapter2.matchCount === 1 && !STATE.chapter2.momErrandShown) { showMomErrandEvent(); return; }
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
@@ -759,19 +806,57 @@ function finishExorcismJanken() {
   };
 }
 
-// 途中出場のチャンスが来た時の入り口。ヒグチビッチ移籍後（サイドバック編）は
-// 出場ポジションの選択を挟む。
+// 途中出場のチャンスが来た時の入り口（ヒグチビッチ加入後〜昇格決定戦のアピール用）。
 function offerSubInEntry() {
   if (STATE.chapter2.promotionDeciderPending) STATE.chapter2.promotionDeciderMatch = true;
-  if (STATE.chapter2.higuchibitchTransferred) {
-    STATE.chapter2.sideBackOffered = true;
-    showChoices('監督：「今日はサイドバックでもしておけ。」', [
-      { label: "サイドバックで出る", onClick: () => { STATE.chapter2.sideBackAccepted = true; startChapter2Match(); } },
-      { label: "俺はトップ下です", onClick: () => { STATE.chapter2.sideBackAccepted = false; startChapter2Match(); } },
-    ]);
-  } else {
-    showChoices("アピールが監督に届いた！\n今日は途中出場のチャンスだ。", [{ label: "試合へ", onClick: startChapter2Match }]);
-  }
+  showChoices("アピールが監督に届いた！\n今日は途中出場のチャンスだ。", [{ label: "試合へ", onClick: startChapter2Match }]);
+}
+
+// お祓いじゃんけんを終えた後のJ1試合が終わった直後、一度だけ発生。
+// どちらを選んでも最終的にJ2降格は固定（①は経験値獲得用の1試合を追加でプレイする）。
+function showSidebackDecisionEvent() {
+  STATE.chapter2.sidebackDecisionShown = true;
+  saveGame(STATE);
+  showOverlay(`<div class="dialog"><p>新監督：「田辺！お前、トップ下はもういい。」</p>
+    <div class="choices"><button id="sbDecisionOk">……</button></div></div>`);
+  document.getElementById("sbDecisionOk").onclick = () => {
+    showOverlay(`<div class="dialog"><p>新監督：「サイドバックでもしておけ。」</p>
+      <div class="choices">
+        <button id="sbAccept">①「わかりました……」</button>
+        <button id="sbRefuse">②「俺はトップ下です！」</button>
+      </div></div>`);
+    document.getElementById("sbAccept").onclick = () => {
+      STATE.chapter2.sideBackOffered = true;
+      STATE.chapter2.sideBackAccepted = true;
+      STATE.chapter2.sidebackFarewellMatchPending = true;
+      saveGame(STATE);
+      startChapter2Match();
+    };
+    document.getElementById("sbRefuse").onclick = () => {
+      STATE.chapter2.sideBackOffered = true;
+      saveGame(STATE);
+      showJ2RelegationEvent();
+    };
+  };
+}
+
+function showJ2RelegationEvent() {
+  showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU J2降格決定</b></p>
+    <div class="choices"><button id="j2RelOk1">……</button></div></div>`);
+  document.getElementById("j2RelOk1").onclick = () => {
+    showOverlay(`<div class="dialog"><p>新監督：「田辺。来年もサイドバックでもしておけ。」</p>
+      <div class="choices"><button id="j2RelOk2">……</button></div></div>`);
+    document.getElementById("j2RelOk2").onclick = () => {
+      STATE.chapter2.j1Mode = false;
+      STATE.chapter2.j2Mode = true;
+      saveGame(STATE);
+      hideOverlay();
+      FIELD && FIELD.enable();
+      // 次の公式戦タイマーが切れた時に「翌シーズン」の無所属イベントを見せる。
+      // それ以降は公式戦サイクル自体を使わないため、タイマーの再開はここが最後。
+      if (CH2TIMER) CH2TIMER.resume();
+    };
+  };
 }
 
 // ---------- 第2章：整体師アルバイト ----------
