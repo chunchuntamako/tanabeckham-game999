@@ -68,8 +68,6 @@ const MAPS = {
     // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
     hiddenNpc: { x: 4, y: 1, id: "oldman_mat", label: "老人" },
-    // 第2章：ヒグチビッチ加入後の中盤、昇格までをつなぐ仮の導線イベント（理由は未確定・仮テキスト）
-    ch2Event: { x: 4, y: 5, id: "ch2_dungeon_detour", label: "???" },
   },
   // 第2章：昇格祈願の神社。入口(下)から宝箱→お守り売り場→本殿(上)の順に並ぶ。
   // 本殿で祈ると宝箱の有無に関係なく「神」が出現する（宝箱は任意のお賽銭窃盗イベント）。
@@ -87,7 +85,8 @@ const MAPS = {
     altar: { x: 6, y: 8, id: "exorcism_altar", label: "お祓い" },
     encounter: null,
   },
-  // 第2章：少林寺。3人のボスを順番に倒し、佐々木SVの4択に挑む修行の場（詳細は段階8で実装）。
+  // 第2章：少林寺。3人のボスを順番に倒し（前段クリアが次のボス出現の条件）、
+  // 全員撃破後に佐々木SVの4択に挑む、雑魚のいないボスラッシュの修行の場。
   // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
   shaolin: {
     name: "少林寺",
@@ -96,6 +95,16 @@ const MAPS = {
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 1, ty: 9, label: "戻る" }],
     encounter: null,
+    bosses: [
+      { x: 4, y: 11, id: "shaolin_issy", enemy: "issy", label: "いっしー", flag: "shaolinIssyDefeated",
+        requires: (state) => true },
+      { x: 4, y: 7, id: "shaolin_tanaka", enemy: "tanaka", label: "詐欺師田中", flag: "shaolinTanakaDefeated",
+        requires: (state) => !!(state.chapter2 && state.chapter2.shaolinIssyDefeated) },
+      { x: 4, y: 3, id: "shaolin_keizo", enemy: "keizo_boss", label: "ケイゾウ", flag: "shaolinKeizoDefeated",
+        requires: (state) => !!(state.chapter2 && state.chapter2.shaolinTanakaDefeated) },
+    ],
+    sensei: { x: 4, y: 1, id: "sasaki_sv", label: "佐々木SV",
+      requires: (state) => !!(state.chapter2 && state.chapter2.shaolinKeizoDefeated && !state.chapter2.shaolinQuizDone) },
   },
   // 第2章：警察逃走ダンジョン。通常のダンジョンとして実装し、出口到達で
   // 逃走成功イベント（onPoliceEscape）に直接つながる特殊出口を使う。
@@ -294,9 +303,14 @@ class FieldController {
       if (this.cb.onMainHall) this.cb.onMainHall(map.mainHall.id);
       return;
     }
-    if (map.ch2Event && this.state.chapter2 && this.state.chapter2.higuchiDebutMomShown &&
-        !this.state.chapter2.dungeonEventDone && map.ch2Event.x === nx && map.ch2Event.y === ny) {
-      if (this.cb.onCh2Event) this.cb.onCh2Event(map.ch2Event.id);
+    if (map.bosses && this.state.chapter2) {
+      const boss = map.bosses.find(b => b.x === nx && b.y === ny &&
+        !this.state.chapter2[b.flag] && (!b.requires || b.requires(this.state)));
+      if (boss) { if (this.cb.onShaolinBoss) this.cb.onShaolinBoss(boss); return; }
+    }
+    if (map.sensei && this.state.chapter2 && map.sensei.x === nx && map.sensei.y === ny &&
+        (!map.sensei.requires || map.sensei.requires(this.state))) {
+      if (this.cb.onShaolinSensei) this.cb.onShaolinSensei(map.sensei.id);
       return;
     }
     if (map.encounter) {
@@ -366,8 +380,15 @@ class FieldController {
     if (map.altar && this.state.chapter2 && this.state.chapter2.curseSuspicionRaised) this.marker(map.altar.x, map.altar.y, tw, th, cameraY, map.altar.label || "お祓い", "rgba(150,80,200,.92)");
     if (map.charmShop && this.state.chapter2) this.marker(map.charmShop.x, map.charmShop.y, tw, th, cameraY, map.charmShop.label || "お守り", "rgba(240,170,40,.90)");
     if (map.mainHall && this.state.chapter2) this.marker(map.mainHall.x, map.mainHall.y, tw, th, cameraY, map.mainHall.label || "本殿", "rgba(210,55,45,.92)");
-    if (map.ch2Event && this.state.chapter2 && this.state.chapter2.higuchiDebutMomShown && !this.state.chapter2.dungeonEventDone) {
-      this.marker(map.ch2Event.x, map.ch2Event.y, tw, th, cameraY, map.ch2Event.label || "???", "rgba(135,70,190,.92)");
+    if (map.bosses && this.state.chapter2) {
+      map.bosses.forEach(b => {
+        if (!this.state.chapter2[b.flag] && (!b.requires || b.requires(this.state))) {
+          this.marker(b.x, b.y, tw, th, cameraY, b.label || "???", "rgba(210,55,45,.92)");
+        }
+      });
+    }
+    if (map.sensei && this.state.chapter2 && (!map.sensei.requires || map.sensei.requires(this.state))) {
+      this.marker(map.sensei.x, map.sensei.y, tw, th, cameraY, map.sensei.label || "???", "rgba(135,70,190,.92)");
     }
 
     // プレイヤー。顔がわかる大きさまで拡大し、足元基準で描画（複数マスにまたがってOK）。

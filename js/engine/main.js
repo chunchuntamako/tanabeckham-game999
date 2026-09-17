@@ -324,7 +324,6 @@ function finishChapter2Match(evalResult) {
     const dismiss = STATE.chapter2.misfortuneMode && !STATE.chapter2.hiroshiDismissed &&
       (STATE.chapter2.matchCount - STATE.chapter2.matchCountAtPunishment) >= CHAPTER2.matchesBeforeDismissal;
     if (dismiss) { showManagerDismissalEvent(); return; }
-    if (checkPromotionTrigger()) return;
     if (STATE.chapter2.benchMode && STATE.chapter2.higuchiDebutDone && !STATE.chapter2.shaolinIdeaShown) { showShaolinIdeaEvent(); return; }
     if (checkCurseSuspicionTrigger()) return;
     if (checkJ1BenchTrigger()) return;
@@ -399,44 +398,61 @@ function showHiguchiArrivalEvent() {
   };
 }
 
-// ---------- 第2章：中盤ダンジョン接続点（仮）・昇格・ヒグチビッチ移籍・J1 ----------
-// 中盤の導線イベント（理由は未確定の仮テキスト）。ヒグチビッチ加入後の練習期間中に
-// ダンジョンで発生し、これを消化した後の次の試合終了でJ1昇格が決まる
-function onCh2Event(id) {
-  if (id !== "ch2_dungeon_detour") return;
+// ---------- 第2章：少林寺修行（3ボス＋佐々木SVの4択）・昇格・ヒグチビッチ移籍・J1 ----------
+// 少林寺のボスは runBattle をそのまま流用。撃破で該当フラグを立てるだけで、
+// field.js側の requires が自動的に次のボスを解放する。
+function onShaolinBoss(boss) {
+  runBattle(boss.enemy, (result) => {
+    if (result === "dead") { respawnAtCheckpoint(); return; }
+    if (result === "win") {
+      STATE.chapter2[boss.flag] = true;
+      saveGame(STATE);
+    }
+    backToField();
+  });
+}
+
+// 3ボス撃破後にのみ出現する佐々木SV。4択のうち④だけが正解。
+// 不正解でも再挑戦はできない（詰みにはせず、技を覚えないまま話が進む）。
+function onShaolinSensei(id) {
+  if (id !== "sasaki_sv") return;
   FIELD.disable();
-  showOverlay(`<div class="dialog"><p>洞窟の奥で、何かが起きた。
-（――この先の展開は、まだ決まっていないようだ）</p>
-    <div class="choices"><button id="ch2EventOk">……</button></div></div>`);
-  document.getElementById("ch2EventOk").onclick = () => {
-    STATE.chapter2.dungeonEventDone = true;
-    STATE.chapter2.promotionReady = true;
-    STATE.chapter2.objective = "次の公式戦に備えよう";
-    saveGame(STATE);
-    hideOverlay();
-    FIELD.enable();
-    FIELD.render();
-  };
+  showOverlay(`<div class="dialog"><p>佐々木SV：「シュートを撃つ前に、一番大事なことはなんだ？」</p>
+    <div class="choices">
+      <button data-i="0">①狙いを定めること</button>
+      <button data-i="1">②力を抜くこと</button>
+      <button data-i="2">③助走をつけること</button>
+      <button data-i="3">④燃やすこと</button>
+    </div></div>`);
+  [0, 1, 2, 3].forEach(i => {
+    overlay.querySelector(`[data-i="${i}"]`).onclick = () => resolveShaolinQuiz(i === 3);
+  });
 }
 
-// ヒグチビッチ加入後、中盤ダンジョンの導線イベントを消化した次の試合でJ1昇格が決まる
-// （固定試合数のグラインドではなく、ストーリー進行がトリガーになる）
-function checkPromotionTrigger() {
-  const c2 = STATE.chapter2;
-  if (c2.higuchibitchJoined && !c2.promoted && c2.promotionReady) {
-    showPromotionEvent();
-    return true;
+function resolveShaolinQuiz(correct) {
+  STATE.chapter2.shaolinQuizDone = true;
+  STATE.chapter2.promotionReady = true;
+  if (correct && !STATE.player.learnedSkills.includes(CHAPTER2.skillShaolinShoot.id)) {
+    STATE.player.learnedSkills.push(CHAPTER2.skillShaolinShoot.id);
   }
-  return false;
-}
+  saveGame(STATE);
+  showOverlay(correct
+    ? `<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}<p>佐々木SV：「……正解だ。」
+「お前には炎が見えている。」</p>
+      <div class="choices"><button id="shaolinQuizOk">🔥 少林シュートを習得した！</button></div></div>`
+    : `<div class="dialog"><p>佐々木SV：「……そうか。」
 
-function showPromotionEvent() {
-  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/tanabe_messi2.png")}<p>ヒグチビッチの活躍でFC山陽TIGAKUは勝ち星を重ね、ついにJ1昇格を決めた！</p>
-    <div class="choices"><button id="promoOk">……</button></div></div>`);
-  document.getElementById("promoOk").onclick = () => {
-    STATE.chapter2.promoted = true;
-    saveGame(STATE);
-    showHiguchiTransferEvent();
+田辺は結局、何も習得できなかった。</p>
+      <div class="choices"><button id="shaolinQuizOk">……</button></div></div>`);
+  document.getElementById("shaolinQuizOk").onclick = () => {
+    showOverlay(`<div class="dialog"><p>${correct ? "田辺：「これでヒグチビッチにも負けない！」" : "田辺：「……まあ、なんとかなるだろう。」"}</p>
+      <div class="choices"><button id="shaolinReturnOk">……</button></div></div>`);
+    document.getElementById("shaolinReturnOk").onclick = () => {
+      STATE.position = { map: "home", x: 4, y: 14 };
+      STATE.chapter2.objective = "次の公式戦に備えよう";
+      saveGame(STATE);
+      enterField();
+    };
   };
 }
 
@@ -775,7 +791,6 @@ TIGAKU ${scoreP} - ${scoreC} 相手
     <div class="choices"><button id="benchMatchOk">OK</button></div></div>`);
   document.getElementById("benchMatchOk").onclick = () => {
     hideOverlay();
-    if (checkPromotionTrigger()) return;
     if (STATE.chapter2.higuchiDebutDone && !STATE.chapter2.higuchiDebutMomShown) { showHiguchiDebutMomEvent(); return; }
     FIELD && FIELD.enable();
     if (CH2TIMER) CH2TIMER.resume();
@@ -952,7 +967,8 @@ function enterField() {
     onAltar: (id) => onAltar(id),
     onCharmShop: (id) => onCharmShop(id),
     onMainHall: (id) => onMainHall(id),
-    onCh2Event: (id) => onCh2Event(id),
+    onShaolinBoss: (boss) => onShaolinBoss(boss),
+    onShaolinSensei: (id) => onShaolinSensei(id),
     onPoliceEscape: () => onPoliceEscape(),
   });
   FIELD.enable();
