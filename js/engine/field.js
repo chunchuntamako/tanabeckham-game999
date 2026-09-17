@@ -8,37 +8,35 @@ const MAPS = {
     bg: "assets/maps/field_home.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 1, ty: 9, label: "フィールド" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 7, label: "フィールド" }],
     buildings: [{ x: 4, y: 4, id: "house_interior", name: "家の中" }],
     encounter: null,
   },
-  // 2026-09-17：全体マップ画像の新デザインに合わせて再配置。ヒグさんが用意した
-  // 新しい見取り図（ダンジョン／神社／少林寺／田辺の家／町／整体院／練習場／
-  // スタジアムを1枚に収めた全体マップ）の見た目の位置に座標を合わせている。
-  // 専用画像は未用意のプレースホルダー（背景画像が無ければ緑一色にフォールバックする既存挙動を利用）。
+  // 2026-09-17：全体マップの正式採用画像（01_共通フィールド_正式採用.png）を
+  // 受領。グリッド解析で読み取った実際のラベル位置に座標を再較正した。
   field: {
     name: "田辺の町・郊外",
-    bg: "assets/maps/field_overworld.png?v=1",
+    bg: "assets/maps/field_overworld.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // エリア判定だと入口がわかりづらいとのことで、扉（1マス）での移動に戻した。
     exits: [
-      { x: 1, y: 9, to: "home", tx: 4, ty: 15, label: "自宅" },
-      { x: 4, y: 9, to: "town", tx: 4, ty: 15, label: "町" },
-      { x: 3, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
-      { x: 2, y: 13, to: "practice", tx: 4, ty: 13, label: "練習場" },
+      { x: 2, y: 7, to: "home", tx: 4, ty: 15, label: "自宅" },
+      { x: 5, y: 7, to: "town", tx: 4, ty: 15, label: "町" },
+      { x: 4, y: 1, to: "dungeon", tx: 4, ty: 15, label: "洞窟" },
+      { x: 3, y: 10, to: "practice", tx: 4, ty: 13, label: "練習場" },
       // 第2章：母のお使いイベント（1試合目終了後）で解放されるまで入口自体が出ない
       { x: 2, y: 4, to: "shrine", tx: 4, ty: 15, label: "神社",
         requires: (state) => !!(state.chapter2 && state.chapter2.shrineUnlocked) },
       // 第2章：ヒグチビッチとの実力差を痛感して少林寺行きを思い立った後に解放される
-      { x: 6, y: 4, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
+      { x: 6, y: 3, to: "shaolin", tx: 4, ty: 15, label: "少林寺",
         requires: (state) => !!(state.chapter2 && state.chapter2.shaolinUnlocked) },
       // 整体院は町とは別の独立した建物としてフィールド上に直接配置する。常時見える
       // 出入口だが、中の受付（seitai_clinic_desk）に条件を満たすまでは何も起きない。
-      { x: 6, y: 9, to: "seitai_clinic", tx: 4, ty: 13, label: "整体院" },
+      { x: 7, y: 7, to: "seitai_clinic", tx: 4, ty: 13, label: "整体院" },
     ],
     buildings: [
-      { x: 5, y: 13, id: "stadium", name: "スタジアム" },
+      { x: 6, y: 11, id: "stadium", name: "スタジアム" },
     ],
     encounter: { table: "field", rate: 0.14 },
   },
@@ -48,7 +46,7 @@ const MAPS = {
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [
-      { x: 4, y: 15, to: "field", tx: 4, ty: 9, label: "郊外" },
+      { x: 4, y: 15, to: "field", tx: 5, ty: 7, label: "郊外" },
       // 第2章：整体院の先輩から紹介されるまでは出現しない
       { x: 4, y: 9, to: "sebastian_clinic", tx: 4, ty: 13, label: "セバスチャン診療所",
         requires: (state) => !!(state.chapter2 && state.chapter2.sebastianUnlocked) },
@@ -69,7 +67,7 @@ const MAPS = {
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // 新しいイラストの入口ゲート（下部中央）の実際の位置に合わせて配置
-    exits: [{ x: 4, y: 13, to: "field", tx: 2, ty: 13, label: "戻る" }],
+    exits: [{ x: 4, y: 13, to: "field", tx: 3, ty: 10, label: "戻る" }],
     encounter: null,
     isPracticeGround: true,
   },
@@ -78,7 +76,7 @@ const MAPS = {
     bg: "assets/maps/dungeon_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
-    exits: [{ x: 4, y: 15, to: "field", tx: 3, ty: 1, label: "出口" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 1, label: "出口" }],
     encounter: { table: "dungeon", rate: 0.18 },
     // 新しいイラストの骨の円形広場（ボス）と、最奥の宝箱（隠しNPC）の位置に合わせて配置
     boss: { x: 4, y: 9, id: "seitaishi", label: "整体師" },
@@ -109,7 +107,7 @@ const MAPS = {
     bg: "assets/maps/shaolin_map.png?v=2",
     bgm: "bgm_dungeon",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 4, label: "戻る" }],
+    exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 3, label: "戻る" }],
     encounter: null,
     bosses: [
       { x: 4, y: 11, id: "shaolin_issy", enemy: "issy", label: "いっしー", flag: "shaolinIssyDefeated",
@@ -125,14 +123,12 @@ const MAPS = {
   // 2026-09-17：田辺整体院・セバスチャン診療室の内観画像を受け取ったのを機に、
   // ダイアログのポップアップではなく独立して歩き回れるマップに変更。
   // 実画像（受付／施術ベッドの位置が確認できる）に合わせて内部座標を較正済み。
-  // field/town側の出入口座標（tx,ty）は今回のfield全体マップ画像が不採用のため
-  // 変更していない（従来どおりfield(6,9)／town(4,9)へ着地する）。
   seitai_clinic: {
     name: "田辺整体院",
     bg: "assets/maps/seitai_clinic_interior.png?v=2",
     bgm: "bgm_field",
     w: 9, h: 16,
-    exits: [{ x: 4, y: 13, to: "field", tx: 6, ty: 9, label: "戻る" }],
+    exits: [{ x: 4, y: 13, to: "field", tx: 7, ty: 7, label: "戻る" }],
     mainHall: { x: 3, y: 10, id: "seitai_clinic_desk", label: "受付" },
     encounter: null,
   },
