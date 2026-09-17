@@ -559,7 +559,7 @@ function resolveShaolinQuiz(correct) {
   }
   saveGame(STATE);
   showOverlay(correct
-    ? `<div class="dialog">${cutinTag("assets/cutins/tanabe_serious.png")}<p>佐々木SV：「……正解だ。」
+    ? `<div class="dialog">${cutinTag("assets/cutins/shaolin_shot_learned.jpg")}<p>佐々木SV：「……正解だ。」
 「お前には炎が見えている。」</p>
       <div class="choices"><button id="shaolinQuizOk">🔥 少林シュートを習得した！</button></div></div>`
     : `<div class="dialog"><p>佐々木SV：「……そうか。」
@@ -697,7 +697,7 @@ function showPromotionCelebration() {
 }
 
 function showHiguchiTransferEvent() {
-  showOverlay(`<div class="dialog"><p>昇格の熱が冷めやらぬ中、ヒグチビッチは颯爽とアーセナルへ移籍していった。
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/higuchi_london_transfer.jpg")}<p>昇格の熱が冷めやらぬ中、ヒグチビッチは颯爽とアーセナルへ移籍していった。
 長い別れの言葉はなかった。
 
 チームの視線は、再び田辺に集まることになる。</p>
@@ -891,7 +891,7 @@ function showSidebackDecisionEvent() {
 }
 
 function showJ2RelegationEvent() {
-  showOverlay(`<div class="dialog"><p><b>FC山陽TIGAKU J2降格決定</b></p>
+  showOverlay(`<div class="dialog">${cutinTag("assets/cutins/j2_relegation.jpg")}<p><b>FC山陽TIGAKU J2降格決定</b></p>
     <div class="choices"><button id="j2RelOk1">……</button></div></div>`);
   document.getElementById("j2RelOk1").onclick = () => {
     showOverlay(`<div class="dialog"><p>新監督：「田辺。来年もサイドバックでもしておけ。」</p>
@@ -1225,7 +1225,7 @@ function showDepressionDribbleLearnEvent() {
       showOverlay(`<div class="dialog"><p>田辺：「……これだ。」</p>
         <div class="choices"><button id="ddOk3">……</button></div></div>`);
       document.getElementById("ddOk3").onclick = () => {
-        showOverlay(`<div class="dialog"><p><b>タナベッカムは『鬱病ドリブル』をひらめいた！</b></p>
+        showOverlay(`<div class="dialog">${cutinTag("assets/cutins/depression_dribble.jpg")}<p><b>タナベッカムは『鬱病ドリブル』をひらめいた！</b></p>
           <div class="choices"><button id="ddOk4">OK</button></div></div>`);
         document.getElementById("ddOk4").onclick = () => {
           if (!STATE.player.learnedSkills.includes(CHAPTER2.skillDepressionDribble.id)) {
