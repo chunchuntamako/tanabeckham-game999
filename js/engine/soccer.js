@@ -266,6 +266,13 @@ class SoccerMatch {
           // 天罰中はポストに嫌われることがある（得点にはせず、こぼれ球にする）
           if(misfortune&&Math.random()<mm.postEventRate){this.banner("ポストに嫌われた……");this.ball.owner=null;this.ball.vx=(Math.random()-.5)*3;this.ball.vy=-3;}
           else this.pendingGoal={concedeTeam:"cpu",scorer:"player",targetX:this.W/2+(Math.random()-.5)*60,targetY:8};
+        } else {
+          // 外れたシュートは相手キーパーが確実にキャッチする（枠外に逸れた場合はそのまま流れる）
+          if(Math.random()<0.7){
+            this.ball.owner=this.cpuGK;this.ball.x=this.cpuGK.x;this.ball.y=this.cpuGK.y;this.ball.vx=0;this.ball.vy=0;
+            this.gkHoldSec=0;this.cpuGK.noPickupUntil=0;
+            this.banner("キーパーにキャッチされた……");
+          }
         }
       } else if(this.pressed("x","pass")){
         this.stats.pass++;
@@ -380,6 +387,12 @@ class SoccerMatch {
         if(boosted)cpuShotChance+=kb.enemyShootRateBonus;
         cpuShotChance=Math.max(.02,cpuShotChance);
         if(Math.random()<cpuShotChance){this.pendingGoal={concedeTeam:"player",scorer:"cpu",targetX:this.W/2+(Math.random()-.5)*60,targetY:this.H-8};}
+        else if(Math.random()<0.7){
+          // 外れたシュートはこちらのキーパーが確実にキャッチする
+          this.ball.owner=this.playerGK;this.ball.x=this.playerGK.x;this.ball.y=this.playerGK.y;this.ball.vx=0;this.ball.vy=0;
+          this.gkHoldSec=0;this.playerGK.noPickupUntil=0;
+          this.banner("キーパーがキャッチ！");
+        }
       }
     });
 
