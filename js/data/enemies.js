@@ -18,7 +18,7 @@ const ENEMIES = {
   // （既存の仲間候補用スプライトをそのまま流用）。
   issy: { name: "いっしー", hp: 40, atk: 8, def: 3, exp: 30, gold: 50, sprite: "assets/characters/nakama_05.png", boss: true },
   tanaka: { name: "詐欺師田中", hp: 55, atk: 10, def: 4, exp: 45, gold: 80, sprite: "assets/enemies/tanaka.png", boss: true },
-  keizo_boss: { name: "ケイゾウ", hp: 90, atk: 13, def: 6, exp: 70, gold: 120, sprite: "assets/characters/nakama_03.png", boss: true },
+  keizo_boss: { name: "ケイゾウ", hp: 90, atk: 13, def: 6, exp: 70, gold: 120, sprite: "assets/characters/nakama_03.jpg", boss: true },
 
   // 第2章：神社奥のボス。CHAPTER2.godBossの数値をそのまま使う（調整はchapter2.js側で行う）
   god: Object.assign({ sprite: "assets/bosses/god.png" }, CHAPTER2.godBoss),

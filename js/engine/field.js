@@ -5,7 +5,7 @@
 const MAPS = {
   home: {
     name: "田辺の家",
-    bg: "assets/maps/field_home.png?v=2",
+    bg: "assets/maps/field_home.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 7, label: "フィールド" }],
@@ -16,7 +16,7 @@ const MAPS = {
   // 受領。グリッド解析で読み取った実際のラベル位置に座標を再較正した。
   field: {
     name: "田辺の町・郊外",
-    bg: "assets/maps/field_overworld.png?v=2",
+    bg: "assets/maps/field_overworld.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // エリア判定だと入口がわかりづらいとのことで、扉（1マス）での移動に戻した。
@@ -42,7 +42,7 @@ const MAPS = {
   },
   town: {
     name: "町",
-    bg: "assets/maps/town_map.png?v=2",
+    bg: "assets/maps/town_map.jpg?v=1",
     bgm: "bgm_town",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [
@@ -63,7 +63,7 @@ const MAPS = {
   },
   practice: {
     name: "サッカー練習場",
-    bg: "assets/maps/practice_map.png?v=1",
+    bg: "assets/maps/practice_map.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     // 新しいイラストの入口ゲート（下部中央）の実際の位置に合わせて配置
@@ -73,7 +73,7 @@ const MAPS = {
   },
   dungeon: {
     name: "序章ダンジョン",
-    bg: "assets/maps/dungeon_map.png?v=2",
+    bg: "assets/maps/dungeon_map.jpg?v=1",
     bgm: "bgm_dungeon",
     w: 9, h: 16, // 画像と同じ9:16の縦長グリッド
     exits: [{ x: 4, y: 15, to: "field", tx: 4, ty: 1, label: "出口" }],
@@ -88,7 +88,7 @@ const MAPS = {
   // 宝箱・お守り売り場・本殿の座標を再較正した。
   shrine: {
     name: "神社",
-    bg: "assets/maps/shrine_map.png?v=2",
+    bg: "assets/maps/shrine_map.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 2, ty: 4, label: "戻る" }],
@@ -104,7 +104,7 @@ const MAPS = {
   // 全員撃破後に佐々木SVの4択に挑む、雑魚のいないボスラッシュの修行の場。
   shaolin: {
     name: "少林寺",
-    bg: "assets/maps/shaolin_map.png?v=2",
+    bg: "assets/maps/shaolin_map.jpg?v=1",
     bgm: "bgm_dungeon",
     w: 9, h: 16,
     exits: [{ x: 4, y: 15, to: "field", tx: 6, ty: 3, label: "戻る" }],
@@ -125,7 +125,7 @@ const MAPS = {
   // 実画像（受付／施術ベッドの位置が確認できる）に合わせて内部座標を較正済み。
   seitai_clinic: {
     name: "田辺整体院",
-    bg: "assets/maps/seitai_clinic_interior.png?v=2",
+    bg: "assets/maps/seitai_clinic_interior.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16,
     exits: [{ x: 4, y: 13, to: "field", tx: 7, ty: 7, label: "戻る" }],
@@ -134,7 +134,7 @@ const MAPS = {
   },
   sebastian_clinic: {
     name: "セバスチャン診療室",
-    bg: "assets/maps/sebastian_clinic_interior.png?v=2",
+    bg: "assets/maps/sebastian_clinic_interior.jpg?v=1",
     bgm: "bgm_field",
     w: 9, h: 16,
     exits: [{ x: 4, y: 14, to: "town", tx: 4, ty: 9, label: "戻る" }],

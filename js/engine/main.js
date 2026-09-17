@@ -35,7 +35,7 @@ function init() {
   // 背景パスはfield.jsのMAPSを単一の情報源にし、バージョンクエリのズレで
   // プリロードが効かなくなる事故を防ぐ（MAPSにマップを足せば自動的に先読みされる）。
   ["assets/characters/tanabe.png?v=2","assets/characters/soccer_teammate.png","assets/characters/soccer_enemy.png",
-    CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.png?v=2"]
+    CHAPTER2.masseurBoss.sprite, "assets/maps/police_chase_map.jpg?v=1"]
     .concat(Object.values(MAPS).map(m => m.bg))
     .forEach(p => getImage(p));
   showTitleScreen();
@@ -69,7 +69,7 @@ function showTitleScreen() {
   playBGM("bgm_title");
   const hasSave = !!loadGame();
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
-    <img src="assets/title/title_main.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
+    <img src="assets/title/title_main.jpg?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
     <button id="titleNew" class="art-hotspot" style="top:74.0%;height:4.3%;left:9%;width:43%;" aria-label="はじめから"></button>
     <button id="titleContinue" class="art-hotspot" style="top:79.5%;height:4.7%;left:9%;width:43%;" aria-label="つづきから" ${hasSave ? "" : "disabled"}></button>
     <button id="titleSettings" class="art-hotspot" style="top:85.3%;height:4.7%;left:9%;width:43%;" aria-label="設定"></button>
@@ -1124,7 +1124,7 @@ function startSeitaiEnding() {
       hideOverlay();
       enterMassageBattleJob();
     };
-  }, "assets/endings/seitai_end.png");
+  }, "assets/endings/seitai_end.jpg");
 }
 
 // 「試合に行く」を選んだ場合。試合結果は自由（本編は分岐しない）で、終了後に解雇される。
@@ -1359,7 +1359,7 @@ class PoliceChase {
   render() {
     const c = this.ctx;
     c.fillStyle = "#1b1e24"; c.fillRect(0, 0, this.W, this.H);
-    const bg = getImage("assets/maps/police_chase_map.png?v=2");
+    const bg = getImage("assets/maps/police_chase_map.jpg?v=1");
     if (bg) c.drawImage(bg, 0, 0, this.W, this.H);
     c.fillStyle = "rgba(80,200,120,.45)";
     c.beginPath(); c.arc(this.exit.x, this.exit.y, this.exit.r, 0, Math.PI * 2); c.fill();
@@ -1402,7 +1402,7 @@ function onPoliceChaseCaught() {
         hideOverlay();
         startPoliceChase();
       };
-    }, "assets/endings/stinky_rice_end.png");
+    }, "assets/endings/stinky_rice_end.jpg");
   };
 }
 
@@ -1459,7 +1459,7 @@ function showSpainOfferEvent() {
 function showChapter2ClearedTitle() {
   playBGM("bgm_title");
   const c2 = STATE.chapter2;
-  showOverlay(`<div class="dialog">${cutinTag("assets/endings/spain_end.png")}
+  showOverlay(`<div class="dialog">${cutinTag("assets/endings/spain_end.jpg")}
     <p><b>タナベッカムの不遇</b>
 第2章 Ver.0.1
 
@@ -1744,7 +1744,7 @@ function showMomDialogue() {
   FIELD && FIELD.disable();
   playBGM("bgm_opening");
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
-    <img src="assets/opening/opening_home.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
+    <img src="assets/opening/opening_home.jpg?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
     <button id="momOk" class="art-hotspot" style="top:66%;height:9%;left:10%;width:80%;" aria-label="次へ"></button>
   </div></div>`);
   sizeArtFrames();
@@ -1779,7 +1779,7 @@ function enterField() {
 
 function enterBuilding(building) {
   FIELD.disable();
-  if (building.id === "weaponshop") openShop(["weapons", "shields", "armors"], "assets/shops/weaponshop.png");
+  if (building.id === "weaponshop") openShop(["weapons", "shields", "armors"], "assets/shops/weaponshop.jpg");
   else if (building.id === "itemshop") openShop(["items"]);
   else if (building.id === "inn") openInn();
   else if (building.id === "tavern") openTavern();
@@ -1803,7 +1803,7 @@ function enterSeitaiClinicBuilding() {
 // 自宅の庭から「家の中へ」で、冒頭で母と話した室内の絵にいつでも戻れるようにする
 function showHomeInterior() {
   showOverlay(`<div class="full-screen-art"><div class="art-frame">
-    <img src="assets/opening/opening_home.png?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
+    <img src="assets/opening/opening_home.jpg?v=${ART_ASSET_VERSION}" onerror="this.style.display='none'">
     <button id="homeInteriorBack" class="art-hotspot" style="top:88%;height:9%;left:10%;width:80%;" aria-label="戻る"></button>
   </div></div>`);
   sizeArtFrames();
@@ -1864,7 +1864,7 @@ function openInn() {
         }
       } },
     { label: "やめる", onClick: backToField },
-  ], "assets/shops/inn.png");
+  ], "assets/shops/inn.jpg");
 }
 
 // ---------- 酒場（NPC抽選） ----------
@@ -1873,7 +1873,7 @@ function openTavern() {
   // 第2章は日数が進まないため、公式戦の回数を日替わり相当のシードにする
   const seed = inCh2 ? STATE.chapter2.matchCount : STATE.day;
   const rng = mulberry32(seed);
-  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/tavern.png")}><p>酒場のNPC（本日）</p><ul>`;
+  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/tavern.jpg")}><p>酒場のNPC（本日）</p><ul>`;
   const flavor = ["酔っぱらい", "旅人", "冒険者", "サッカー好き", "情報屋"];
   const npcCount = 2 + Math.floor(rng() * 2);
   let picked = [];
@@ -1935,7 +1935,7 @@ function mulberry32(a) {
 // 整体師のアルバイトは、フィールド上の独立した「整体院」の建物から直接始める
 // （enterSeitaiClinicBuilding）ため、職業安定所には出さない。
 function openJobCenter() {
-  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/jobcenter.png")}><p>職業安定所：求人を選んでください</p><ul>`;
+  let html = `<div class="dialog shop-bg"${shopBgStyle("assets/shops/jobcenter.jpg")}><p>職業安定所：求人を選んでください</p><ul>`;
   CHAPTER0.jobs.forEach((j, i) => { html += `<li><button data-i="${i}">${j.name}</button></li>`; });
   html += `</ul><button id="closeJob">出る</button></div>`;
   showOverlay(html);
