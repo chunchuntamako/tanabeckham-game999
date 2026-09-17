@@ -1870,7 +1870,7 @@ function openInn() {
     { label: "泊まる", onClick: () => {
         STATE.player.hp = STATE.player.maxHp;
         STATE.player.stamina = STATE.player.maxStamina;
-        STATE.position = { map: "home", x: 4, y: 14 };
+        // 自宅へ戻さず、宿屋のあるその場（町）からそのまま再開する
         // 第2章では序章の残り時間(TIMER)がとっくに0で止まっているため、
         // 日数経過の判定は使わず、代わりに次の公式戦までの時間を2分進める。
         if (STATE.chapter2 && STATE.chapter2.started) {
