@@ -6,7 +6,7 @@ function defaultSaveData() {
   return {
     version: SAVE_VERSION, chapter: 0, day: 1, remainingSec: CHAPTER0.startTimerSeconds,
     player: { name:"田辺",level:1,exp:0,hp:30,maxHp:30,stamina:100,maxStamina:100,atk:4,def:2,luck:3,gold:300,
-      equip:{weapon:null,shield:null,armor:null},inventory:[],soccerSkills:{shoot:1,pass:1,dribble:1,defense:1,run:3},learnedSkills:[],seitaiPoint:0,titles:[] },
+      equip:{weapon:null,shield:null,armor:null},inventory:[],soccerSkills:{shoot:1,pass:1,dribble:1,defense:1,run:3},learnedSkills:[],seitaiPoint:0,seitaiSkill:0,salesSkill:0,titles:[] },
     party: [], flags: JSON.parse(JSON.stringify(CHAPTER0.storyFlags)), hiddenEvents:{}, matchRecords:{}, position:{map:"home",x:4,y:14},
     chapter2: JSON.parse(JSON.stringify(CHAPTER2.storyFlagsDefault))
   };

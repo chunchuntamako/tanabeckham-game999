@@ -69,19 +69,33 @@ const CHAPTER2 = {
   },
 
 
-  // 整体師アルバイトのミニゲーム設定
-  massageJob: {
-    reward: 40,          // 正解時のG
-    seitaiPointGain: 1,  // 正解時の身体ケアポイント増加
-    hintThreshold: 5,    // seitaiPointがこの値以上でヒントが出る
-    patients: [
-      { symptom: "お客さん：「右肩が痛いんじゃ……」", correct: "shoulder" },
-      { symptom: "お客さん：「腰が重だるくてのう」", correct: "waist" },
-      { symptom: "お客さん：「首がまったく回らん」", correct: "neck" },
-      { symptom: "お客さん：「膝に違和感があるんじゃ」", correct: "knee" },
-    ],
-    spots: { shoulder: "肩", waist: "腰", neck: "首", knee: "膝" },
+  // 整体バトル設定（J2無所属〜のアルバイト編）。施術部位の一覧はここで一元管理する。
+  massageBattle: {
+    spots: { waist: "腰", leg: "脚", neck: "首", shoulder: "肩", back: "背中", knee: "膝" },
+    rareRate: 0.08, // 「健康なおじいさん」が出現する確率
   },
+
+  massageProducts: {
+    mat: { name: "マット", price: 300 },
+    pillow: { name: "枕", price: 150 },
+  },
+
+  // 患者6種。weakSpotsに施術すると大ダメージ、それ以外は軽微。
+  // 「健康なおじいさん」（immune）はほぼ施術が効かない代わりに商品販売に弱い（レア）。
+  patients: [
+    { id: "waist_grandpa", name: "腰痛のおじいさん", hp: 60, atk: 8, reward: 40,
+      weakSpots: ["waist", "leg"], attackLines: ["まだ痛いぞ！", "もっと優しくしてくれ！"] },
+    { id: "shoulder_grandma", name: "肩こりのおばあさん", hp: 70, atk: 10, reward: 45,
+      weakSpots: ["shoulder", "neck"], attackLines: ["前の先生の方が上手だった！", "下手くそ！"] },
+    { id: "knee_grandpa", name: "膝痛のおじいさん", hp: 100, atk: 9, reward: 55,
+      weakSpots: ["knee", "leg"], attackLines: ["そこじゃない！", "もっと真面目にやれ！"] },
+    { id: "stiff_neck_lady", name: "寝違えのおばさん", hp: 55, atk: 14, reward: 40,
+      weakSpots: ["neck", "shoulder"], attackLines: ["痛い痛い痛い！"] },
+    { id: "stiff_all_uncle", name: "全身バキバキのおじさん", hp: 130, atk: 12, reward: 80,
+      weakSpots: ["waist", "shoulder", "leg"], attackLines: ["全然効いてないぞ！"] },
+    { id: "healthy_grandpa", name: "健康なおじいさん", hp: 30, atk: 5, reward: 100, rare: true,
+      immune: true, weakSpots: [], sellBonus: true, attackLines: ["早く帰りたいんじゃが……"] },
+  ],
 
   // 警察逃走ダンジョンの敵遭遇率（通常ダンジョンより高め）
   policeDungeonEncounterRate: 0.28,
@@ -170,6 +184,8 @@ const CHAPTER2 = {
     sideBackExperience: 0,
     massageJobUnlocked: false,
     massageWorkCount: 0,
+    seitaiSkillSeeded: false,     // プロローグの整体ポイントを整体スキル初期値へボーナス反映済みか（一度きり）
+    patientsDefeatedCount: 0,     // 整体バトルで「こらしめた」患者の人数（後の警察イベントの伏線）
 
     // --- 逮捕・逃走 ---
     masseurArrested: false,

@@ -152,3 +152,118 @@ class BattleController {
     }
   }
 }
+
+// ===== 整体バトル（第2章後半：J2無所属〜） =====
+// BattleControllerと同じ構造の専用バトル。敵は「患者」、勝利表現は必ず「こらしめた」。
+class MassageBattle {
+  constructor(state, patientData, onEnd) {
+    this.state = state;
+    this.onEnd = onEnd;
+    this.patient = JSON.parse(JSON.stringify(patientData));
+    this.patient.curHp = this.patient.hp;
+    this.log = [`${this.patient.name}があらわれた！`];
+    this.ended = false;
+    this.result = null;
+    this.angerBoost = 0; // 商品販売に失敗すると一時的に患者の攻撃力が上がる
+  }
+
+  addLog(msg) { this.log.push(msg); if (this.log.length > 8) this.log.shift(); }
+
+  seitaiDamage(spot) {
+    const p = this.state.player;
+    const base = 6 + (p.seitaiSkill || 0) * 1.5 + Math.random() * 4;
+    if (this.patient.immune) return Math.max(1, Math.round(base * 0.15));
+    const effective = this.patient.weakSpots.includes(spot);
+    return Math.max(1, Math.round(base * (effective ? 1.8 : 0.5)));
+  }
+
+  treat(spot) {
+    const dmg = this.seitaiDamage(spot);
+    this.patient.curHp -= dmg;
+    const spotLabel = CHAPTER2.massageBattle.spots[spot];
+    if (this.patient.immune) {
+      this.addLog(`${spotLabel}を施術した。しかし、もともと悪くない！ ${dmg}ダメージ。`);
+    } else if (this.patient.weakSpots.includes(spot)) {
+      this.addLog(`効果はばつぐんだ！ ${this.patient.name}に${dmg}のダメージ！`);
+    } else {
+      this.addLog(`${spotLabel}を施術した。いまいち効果がなかった…… ${dmg}ダメージ。`);
+    }
+  }
+
+  listen() {
+    if (this.patient.weakSpots.length) {
+      const hint = this.patient.weakSpots.map(s => CHAPTER2.massageBattle.spots[s]).join("・");
+      this.addLog(`話を聞いた。「${hint}」が効きそうだ……。`);
+    } else {
+      this.addLog("話を聞いた。「どこも悪くないんじゃがなあ……」");
+    }
+  }
+
+  sell(item) {
+    const p = this.state.player;
+    const trust = 1 - Math.max(0, this.patient.curHp) / this.patient.hp;
+    let chance = 0.3 + (p.salesSkill || 0) * 0.03 + trust * 0.3;
+    if (this.patient.sellBonus) chance += 0.3;
+    chance = Math.min(0.9, chance);
+    const product = CHAPTER2.massageProducts[item];
+    if (Math.random() < chance) {
+      const price = this.patient.sellBonus ? product.price * 2 : product.price;
+      p.gold += price;
+      p.salesSkill = (p.salesSkill || 0) + 1;
+      this.addLog(`${this.patient.name}は${product.name}を購入した！ G+${price}`);
+    } else {
+      this.angerBoost += 4;
+      this.addLog(`${this.patient.name}は${product.name}を断った。怒っている……`);
+    }
+  }
+
+  patientTurn() {
+    const p = this.state.player;
+    const line = this.patient.attackLines[Math.floor(Math.random() * this.patient.attackLines.length)];
+    const dmg = Math.max(1, Math.round(this.patient.atk + this.angerBoost + (Math.random() * 4 - 2)));
+    p.hp -= dmg;
+    this.addLog(`${this.patient.name}：「${line}」\nタナベッカムに${dmg}のダメージ！`);
+  }
+
+  finishWin() {
+    const p = this.state.player;
+    p.seitaiSkill = (p.seitaiSkill || 0) + 1;
+    p.gold += this.patient.reward;
+    this.state.chapter2.massageWorkCount += 1;
+    this.state.chapter2.patientsDefeatedCount = (this.state.chapter2.patientsDefeatedCount || 0) + 1;
+    this.addLog(`${this.patient.name}を こらしめた！ G+${this.patient.reward}`);
+    this.ended = true;
+    this.result = "won";
+    saveGame(this.state);
+    return true;
+  }
+
+  command(cmd, arg) {
+    if (this.ended || this.state.player.hp <= 0) return this.ended;
+    this.log = [];
+    if (cmd === "treat") this.treat(arg);
+    else if (cmd === "sell") this.sell(arg);
+    else if (cmd === "listen") this.listen();
+    else if (cmd === "flee") {
+      if (Math.random() < 0.6) {
+        this.addLog("その場を離れた。");
+        this.ended = true;
+        this.result = "fled";
+        saveGame(this.state);
+        return true;
+      }
+      this.addLog("逃げられなかった！");
+    }
+    if (this.patient.curHp <= 0) return this.finishWin();
+    this.patientTurn();
+    if (this.state.player.hp <= 0) {
+      this.state.player.hp = 0;
+      this.ended = true;
+      this.result = "lost";
+      saveGame(this.state);
+      return true;
+    }
+    saveGame(this.state);
+    return false;
+  }
+}

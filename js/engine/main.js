@@ -859,40 +859,94 @@ function showJ2RelegationEvent() {
   };
 }
 
-// ---------- 第2章：整体師アルバイト ----------
-function enterMassageJob() {
-  const job = CHAPTER2.massageJob;
-  const patient = job.patients[Math.floor(Math.random() * job.patients.length)];
-  const spotKeys = Object.keys(job.spots);
-  const hint = STATE.player.seitaiPoint >= job.hintThreshold;
-  let html = `<div class="dialog"><p>${patient.symptom}
-施術箇所を選んでください。${hint ? "（身体ケアの経験から、なんとなく見当がつく……）" : ""}</p><ul>`;
-  spotKeys.forEach((k, i) => { html += `<li><button data-i="${i}">${job.spots[k]}</button></li>`; });
-  html += `</ul><button id="closeMassage">やめる</button></div>`;
-  showOverlay(html);
-  spotKeys.forEach((k, i) => {
-    overlay.querySelector(`[data-i="${i}"]`).onclick = () => resolveMassage(k === patient.correct);
+// ---------- 第2章：整体バトル ----------
+// 通常フィールドのモンスターの代わりに「患者」が敵として出現する、通常RPG戦闘
+// （BattleController）と同じ構造の専用バトル。患者を倒す表現は必ず「こらしめた」。
+function enterMassageBattleJob() {
+  // プロローグの整体ポイントがあれば、初回だけ整体スキルの初期値にボーナス反映する
+  if (!STATE.chapter2.seitaiSkillSeeded) {
+    STATE.player.seitaiSkill = (STATE.player.seitaiSkill || 0) + (STATE.player.seitaiPoint || 0);
+    STATE.chapter2.seitaiSkillSeeded = true;
+  }
+  const list = CHAPTER2.patients;
+  const normals = list.filter(p => !p.rare);
+  const rare = list.find(p => p.rare);
+  const patient = (rare && Math.random() < CHAPTER2.massageBattle.rareRate) ? rare : normals[Math.floor(Math.random() * normals.length)];
+  const battle = new MassageBattle(STATE, patient, (result) => {
+    MASSAGE = null;
+    if (result === "won") {
+      showChoices("次の患者を探しますか？", [
+        { label: "続ける", onClick: enterMassageBattleJob },
+        { label: "やめる", onClick: backToField },
+      ]);
+    } else {
+      if (result === "lost") {
+        STATE.player.hp = Math.max(1, Math.round(STATE.player.maxHp * 0.3));
+        saveGame(STATE);
+      }
+      showChoices(result === "lost" ? "施術に失敗した……報酬はなし。" : "その場を離れた。", [
+        { label: "もう一人施術する", onClick: enterMassageBattleJob },
+        { label: "やめる", onClick: backToField },
+      ]);
+    }
   });
-  overlay.querySelector("#closeMassage").onclick = backToField;
+  MASSAGE = battle;
+  renderMassageBattle(battle);
 }
 
-function resolveMassage(correct) {
-  const job = CHAPTER2.massageJob;
-  STATE.chapter2.massageWorkCount += 1;
-  let msg;
-  if (correct) {
-    STATE.player.gold += job.reward;
-    STATE.player.seitaiPoint += job.seitaiPointGain;
-    msg = `施術成功！ G+${job.reward}、身体ケアポイント+${job.seitaiPointGain}`;
-  } else {
-    msg = "施術は空振りだった……報酬はなし。";
-  }
-  saveGame(STATE);
-  if (checkMasseurArrestTrigger()) return;
-  showChoices(msg, [
-    { label: "もう一人施術する", onClick: enterMassageJob },
-    { label: "やめる", onClick: backToField },
-  ]);
+function renderMassageBattle(m) {
+  const p = STATE.player;
+  const html = `<div class="dialog battle">
+    <p><b>${m.patient.name}</b> 症状の残り：${Math.max(0, m.patient.curHp)}/${m.patient.hp}</p>
+    <p>タナベッカム HP:${p.hp}/${p.maxHp}</p>
+    <div class="log">${m.log.map(l => `<div>${l.replace(/\n/g, "<br>")}</div>`).join("")}</div>
+    <div class="choices">
+      <button id="mb_treat">🤲 施術する</button>
+      <button id="mb_sell">💰 商品をすすめる</button>
+      <button id="mb_listen">👂 話を聞く</button>
+      <button id="mb_flee">↩ 逃げる</button>
+    </div></div>`;
+  showOverlay(html);
+  overlay.classList.add("overlay-battle");
+  overlay.querySelector("#mb_treat").onclick = () => enterMassageTreatMenu(m);
+  overlay.querySelector("#mb_sell").onclick = () => enterMassageSellMenu(m);
+  overlay.querySelector("#mb_listen").onclick = () => { if (m.command("listen")) renderMassageBattleEnd(m); else renderMassageBattle(m); };
+  overlay.querySelector("#mb_flee").onclick = () => { if (m.command("flee")) renderMassageBattleEnd(m); else renderMassageBattle(m); };
+}
+
+function enterMassageTreatMenu(m) {
+  const spots = CHAPTER2.massageBattle.spots;
+  const keys = Object.keys(spots);
+  let html = `<div class="dialog"><p>どこを施術しますか？</p><ul>`;
+  keys.forEach((s, i) => { html += `<li><button data-i="${i}">${spots[s]}を施術する</button></li>`; });
+  html += `</ul><button id="mbTreatBack">戻る</button></div>`;
+  showOverlay(html);
+  keys.forEach((s, i) => {
+    overlay.querySelector(`[data-i="${i}"]`).onclick = () => {
+      if (m.command("treat", s)) renderMassageBattleEnd(m); else renderMassageBattle(m);
+    };
+  });
+  overlay.querySelector("#mbTreatBack").onclick = () => renderMassageBattle(m);
+}
+
+function enterMassageSellMenu(m) {
+  const html = `<div class="dialog"><p>何をすすめますか？</p><ul>
+    <li><button id="mbSellMat">マットをすすめる</button></li>
+    <li><button id="mbSellPillow">枕をすすめる</button></li>
+    </ul><button id="mbSellBack">戻る</button></div>`;
+  showOverlay(html);
+  overlay.querySelector("#mbSellMat").onclick = () => { if (m.command("sell", "mat")) renderMassageBattleEnd(m); else renderMassageBattle(m); };
+  overlay.querySelector("#mbSellPillow").onclick = () => { if (m.command("sell", "pillow")) renderMassageBattleEnd(m); else renderMassageBattle(m); };
+  overlay.querySelector("#mbSellBack").onclick = () => renderMassageBattle(m);
+}
+
+function renderMassageBattleEnd(m) {
+  showOverlay(`<div class="dialog"><p>${m.log.map(l => l.replace(/\n/g, "<br>")).join("<br>")}</p>
+    <div class="choices"><button id="mbEndOk">OK</button></div></div>`);
+  document.getElementById("mbEndOk").onclick = () => {
+    hideOverlay();
+    m.onEnd(m.result);
+  };
 }
 
 // ---------- 第2章：悪徳整体師逮捕・警察逃走ダンジョン・エンディング ----------
@@ -1418,7 +1472,7 @@ function openJobCenter() {
   CHAPTER0.jobs.forEach((j, i) => {
     overlay.querySelector(`[data-i="${i}"]`).onclick = () => applyJob(j);
   });
-  if (massageAvailable) document.getElementById("jobMassage").onclick = enterMassageJob;
+  if (massageAvailable) document.getElementById("jobMassage").onclick = enterMassageBattleJob;
   overlay.querySelector("#closeJob").onclick = backToField;
 }
 
