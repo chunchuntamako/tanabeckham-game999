@@ -36,6 +36,13 @@ class SoccerMatch {
   }
   enable() { document.addEventListener("keydown", this.keyDown); document.addEventListener("keyup", this.keyUp); this.interval = setInterval(() => this.tick(), 1000/30); }
   disable() { document.removeEventListener("keydown", this.keyDown); document.removeEventListener("keyup", this.keyUp); clearInterval(this.interval); }
+  // 特に強く見せたい試合（J1開幕戦・人生分岐「試合に行く」・解雇後の草サッカー）かどうか
+  isKeyMatchBoosted() {
+    const c2 = this.state.chapter2;
+    if (!c2) return false;
+    return !!((c2.j1Mode && c2.matchCountAtJ1Start != null && c2.matchCountAtJ1Start === c2.matchCount) ||
+      c2.lifeForkMatchActive || c2.dismissedFromClub);
+  }
   setKey(key,val) { this.keys[key] = val; }
   distTo(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
   pressed(key, name) { const now=!!this.keys[key]; const fire=now&&!this.actionLatch[name]; this.actionLatch[name]=now; return fire; }
@@ -127,6 +134,8 @@ class SoccerMatch {
     let chance = Math.min(.85, (.3 + this.state.player.soccerSkills.defense*.05) * staminaFactor);
     // J1編は呪いとは別に、田辺自身の守備の実力不足で通用しにくい
     if (this.state.chapter2 && this.state.chapter2.j1Mode) chance = Math.max(.08, chance - CHAPTER2.j1Modifier.tackleChancePenalty);
+    // 特に強く見せたい試合はタックルも通用しにくくする
+    if (this.isKeyMatchBoosted()) chance = Math.max(.05, chance - CHAPTER2.keyMatchBoost.tackleChancePenalty);
     if (Math.random()<chance) {
       this.ball.owner=this.tanabe; this.stats.defense++;
       this.state.chapter2.defensiveContribution += 1;
@@ -204,11 +213,7 @@ class SoccerMatch {
     const depression = !!(this.state.chapter2 && this.state.chapter2.depressionMode);
     // 特に強く見せたい試合（J1開幕戦・人生分岐「試合に行く」・解雇後の草サッカー）は
     // 他の補正に上乗せでCPUを強化する
-    const boosted = !!(this.state.chapter2 && (
-      (j1 && this.state.chapter2.matchCountAtJ1Start != null && this.state.chapter2.matchCountAtJ1Start === this.state.chapter2.matchCount) ||
-      this.state.chapter2.lifeForkMatchActive ||
-      this.state.chapter2.dismissedFromClub
-    ));
+    const boosted = this.isKeyMatchBoosted();
     const kb = CHAPTER2.keyMatchBoost;
     // ゴールキーパーがいる分、双方ともシュートがわずかに決まりにくくなる
     const GK_SHOT_PENALTY = 0.06;
@@ -356,6 +361,7 @@ class SoccerMatch {
       en.x=Math.max(12,Math.min(this.W-12,en.x));en.y=Math.max(15,Math.min(this.H-15,en.y));
       let enemyPickupRadius=misfortune?13+mm.reboundToEnemyBonus*20:13;
       if(j1)enemyPickupRadius+=jm.passInterceptBonus;
+      if(boosted)enemyPickupRadius+=kb.passInterceptBonus;
       if(!this.ball.owner&&!this.pendingGoal&&this.distTo(en,this.ball)<enemyPickupRadius){this.ball.owner=en; en.holdSec=0; if(this.distTo(en,this.tanabe)<22)this.stats.defense++;}
     });
     this.enemies.forEach(en=>{

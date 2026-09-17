@@ -70,10 +70,14 @@ const CHAPTER2 = {
 
   // 特に強く見せたい試合だけの追加補正（J1開幕戦・人生分岐「試合に行く」・
   // 解雇後の草サッカー）。他の補正（j1Modifier等）とは重ねがけしてよい。
+  // 「普通に勝ててしまう」との指摘を受けて大幅に強化。普通のプレイでは
+  // 勝てないくらい理不尽に強い相手にする（それがこのゲームの仕様）。
   keyMatchBoost: {
-    enemySpeedMultiplier: 1.2,
-    enemyShootRateBonus: 0.1,
-    playerShotChancePenalty: 0.07,
+    enemySpeedMultiplier: 1.5,
+    enemyShootRateBonus: 0.28,
+    playerShotChancePenalty: 0.4,
+    tackleChancePenalty: 0.2,
+    passInterceptBonus: 7,
   },
 
 
