@@ -142,8 +142,14 @@ function hudLoop() {
       ` | ${timePart}${misfortunePart}${poopPart}`;
     const objEl = document.getElementById("ch2Objective");
     if (objEl) {
+      // 序章は第2章のような段階的な目標変化が無い一本道のサンドボックスなので、
+      // 母との会話後〜入団テストが始まるまでの間は固定の目標文言を出す。
+      const inPrologueSandbox = !inCh2 && STATE.flags.momTalkDone && !STATE.flags.timeUpDone && !STATE.flags.prologueClear;
       if (inCh2 && STATE.chapter2.objective) {
         objEl.textContent = "目標：" + STATE.chapter2.objective;
+        objEl.style.display = (MATCH || IN_BATTLE) ? "none" : "block";
+      } else if (inPrologueSandbox) {
+        objEl.textContent = "目標：仕事を探して稼ぎ、力をつけよう";
         objEl.style.display = (MATCH || IN_BATTLE) ? "none" : "block";
       } else {
         objEl.style.display = "none";
