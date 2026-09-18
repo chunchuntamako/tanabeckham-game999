@@ -1502,10 +1502,9 @@ function showSpainOfferEvent() {
 }
 
 function showChapter2ClearedTitle() {
-  playBGM("bgm_title");
   const c2 = STATE.chapter2;
-  showOverlay(`<div class="dialog">${cutinTag("assets/endings/spain_end.jpg")}
-    <p><b>タナベッカムの不遇</b>
+  const showMenu = () => {
+    showOverlay(`<div class="dialog"><p><b>タナベッカムの不遇</b>
 第2章 Ver.0.1
 
 こうしてタナベッカムはスペインへ渡った。
@@ -1513,17 +1512,23 @@ function showChapter2ClearedTitle() {
 
 CHAPTER 2 CLEAR
 第3章「スペイン編」へ続く……</p>
-    <div class="choices"><button id="ch2ClearReview">記録を見る</button><button id="ch2NewGame">最初から遊ぶ</button></div></div>`);
-  document.getElementById("ch2ClearReview").onclick = () => {
-    showChoices(`第2章記録\n試合数:${c2.matchCount} 昇格:${c2.promoted ? "○" : "×"}\n称号:${STATE.player.titles.join("、") || "なし"}\n呪いレベル:${c2.curseLevel} お祓い回数:${c2.exorcismCount}\nサイドバック経験値:${c2.sideBackExperience}\n整体スキル:${STATE.player.seitaiSkill} 販売スキル:${STATE.player.salesSkill}\nこらしめた患者数:${c2.patientsDefeatedCount}`,
-      [{ label: "戻る", onClick: showChapter2ClearedTitle }]);
+      <div class="choices"><button id="ch2ClearReview">記録を見る</button><button id="ch2NewGame">最初から遊ぶ</button></div></div>`);
+    document.getElementById("ch2ClearReview").onclick = () => {
+      showChoices(`第2章記録\n試合数:${c2.matchCount} 昇格:${c2.promoted ? "○" : "×"}\n称号:${STATE.player.titles.join("、") || "なし"}\n呪いレベル:${c2.curseLevel} お祓い回数:${c2.exorcismCount}\nサイドバック経験値:${c2.sideBackExperience}\n整体スキル:${STATE.player.seitaiSkill} 販売スキル:${STATE.player.salesSkill}\nこらしめた患者数:${c2.patientsDefeatedCount}`,
+        [{ label: "戻る", onClick: showMenu }]);
+    };
+    document.getElementById("ch2NewGame").onclick = () => {
+      showChoices("セーブを消して最初から遊びますか？", [
+        { label: "はい（消して最初から）", onClick: () => { deleteSave(); STATE = null; location.reload(); } },
+        { label: "やめる", onClick: showMenu },
+      ]);
+    };
   };
-  document.getElementById("ch2NewGame").onclick = () => {
-    showChoices("セーブを消して最初から遊びますか？", [
-      { label: "はい（消して最初から）", onClick: () => { deleteSave(); STATE = null; location.reload(); } },
-      { label: "やめる", onClick: showChapter2ClearedTitle },
-    ]);
-  };
+  showEndingRoll("ENDING「スペインへ」", `
+    <p>こうしてタナベッカムはスペインへ渡った。</p>
+    <p>世界初――「整体師兼サッカー見習い」が誕生した。</p>
+    <p><b>第3章「スペイン編」へ続く……</b></p>
+  `, showMenu, "assets/endings/spain_end.jpg");
 }
 
 // アップエリア：田辺はベンチ横で軽い行動のみ可能。managerAppealを貯めて途中出場を狙う。
