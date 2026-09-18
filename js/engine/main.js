@@ -1955,11 +1955,33 @@ function openTavern() {
       if (STATE.party.filter(m => !m.dead).length < CHAPTER0.maxPartySize) {
         joinCompanion(p.companion);
       } else {
-        openTavern();
+        showPartySwapPrompt(p.companion);
       }
     };
   });
   overlay.querySelector("#closeTavern").onclick = backToField;
+}
+
+// パーティが満員の時、仲間候補と話しかけると出す入れ替え画面。
+// 現在の生存メンバーから1人選んで離脱させ、その枠に候補を迎え入れる。
+function showPartySwapPrompt(candidate) {
+  const alive = STATE.party.filter(m => !m.dead);
+  let html = `<div class="dialog"><p>${candidate.name}が仲間に加わりたそうにしている。
+パーティは満員だ。誰かと入れ替えるか？</p><ul>`;
+  alive.forEach((m, i) => {
+    html += `<li>${cutinTag(m.sprite, "npc-portrait")}<br>${m.name}（HP ${Math.max(0, m.hp)}/${m.maxHp}） <button data-i="${i}">入れ替える</button></li>`;
+  });
+  html += `</ul><button id="swapCancel">やめる</button></div>`;
+  showOverlay(html);
+  alive.forEach((m, i) => {
+    const btn = overlay.querySelector(`[data-i="${i}"]`);
+    if (btn) btn.onclick = () => {
+      const idx = STATE.party.indexOf(m);
+      if (idx !== -1) STATE.party.splice(idx, 1);
+      joinCompanion(candidate);
+    };
+  });
+  overlay.querySelector("#swapCancel").onclick = openTavern;
 }
 
 // 仲間が加わった瞬間の演出。カットイン素材があれば一言メッセージと共に表示し、

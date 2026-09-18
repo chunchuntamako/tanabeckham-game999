@@ -53,9 +53,16 @@ class SoccerMatch {
     if (this.state.player.luck < sk.luckCost) { this.banner("運が足りない……田辺らしい！"); return; }
     if (this.state.player.stamina < sk.staminaCost) { this.banner("体力が足りない！"); return; }
     this.state.player.stamina -= sk.staminaCost;
-    this.specialUntil = this.elapsed + sk.durationSec;
-    this.stats.special += 1;
-    this.banner("必殺技 お年寄り殺し！ 相手能力30%DOWN");
+    this.disable();
+    showCutsceneChain([
+      { cutin: "assets/cutins/tanabe_serious.png", text: "田辺の目つきが変わった。" },
+      { text: "田辺：「お年寄り殺し……！！」" },
+    ], () => {
+      this.specialUntil = this.elapsed + sk.durationSec;
+      this.stats.special += 1;
+      this.banner("必殺技 お年寄り殺し！ 相手能力30%DOWN");
+      this.enable();
+    });
   }
   banner(text) { this.bannerText=text; this.bannerUntil=this.elapsed+2.2; }
 
